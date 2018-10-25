@@ -1,27 +1,27 @@
 // #region global declarations
 /**注册一个小程序 */
-declare function App(param: WTS.IApp): void;
+declare function App(param: wts.IApp): void;
 
 /**注册一个页面 */
-declare function Page(param: WTS.IPage): void;
+declare function Page(param: wts.IPage): void;
 
 /**注册一个组件 */
-declare function Component(param: WTS.IComponent): void
+declare function Component(param: wts.IComponent): void
 
 /**注册一个组件模块 */
-declare function Behavior(param: WTS.IComponent): any
+declare function Behavior(param: wts.IComponent): any
 
 /**全局函数 可以获取到小程序实例 */
-declare function getApp(): WTS.IApp;
+declare function getApp(): wts.IApp;
 
 /**获取当前页面栈的实例 以数组形式按栈的顺序给出 第一个元素为首页 最后一个元素为当前页面 */
-declare function getCurrentPages(): WTS.IPage;
+declare function getCurrentPages(): wts.IPage;
 
-declare var wx: WTS.wx;
+declare var wx: wts.wx;
 /**
  * wexin mini program core
  */
-declare namespace WTS {
+declare namespace wts {
     interface LaunchInfo {
         path: string;
         query: object;
@@ -37,8 +37,6 @@ declare namespace WTS {
         [others: string]: any;
     }
     interface IPage {
-        /**页面的初始数据 */
-        data?: Object;
         /**生命周期函数--监听页面加载 */
         onLoad?: Function;
         /**生命周期函数--监听页面初次渲染完成 */
@@ -53,17 +51,17 @@ declare namespace WTS {
         onPullDownRefresh?: Function;
         /**页面上拉触底事件的处理函数 */
         onReachBottom?: Function;
-        /**
-         * 设置该页面的分享信息
-         * * 只有定义了此事件处理函数 右上角菜单才会显示“分享”按钮
-         * * 用户点击分享按钮的时候会调用
-         * * 此事件需要 return 一个 Object 用于自定以分享内容
-         */
-        onShareAppMessage?: (options?: { from: string, target: Target }) => PageShareData;
         /**页面滚动触发事件的处理函数 */
         onPageScroll?: Function;
         /**开发者可以添加任意的函数或数据到参数中 用 this 可以访问 */
         [others: string]: any;
+        /**
+         * 设置该页面的分享信息
+         * 用户点击分享按钮的时候会调用
+         * 此事件需要 return 一个 Object 用于自定以分享内容
+         */
+        onShareAppMessage?: (options?: { from: string, target: Target }) => PageShareData;
+
     }
     /**指定组件的生命周期函数 时间处理函数及方法等  */
     interface IComponent {
@@ -74,8 +72,6 @@ declare namespace WTS {
          * observer 表示属性值被更改时的响应函数
          */
         properties?: any
-        /**组件的内部数据 和 properties 一同用于组件的模版渲染 */
-        data?: any
         /**类似于mixins和traits的组件间代码复用机制 */
         behaviors?: any[]
         /**组件生命周期函数 在组件实例进入页面节点树时执行 注意此时不能调用 setData */
@@ -92,7 +88,6 @@ declare namespace WTS {
         relations?: any
         /**组件接受的外部样式类 */
         externalClasses?: Array<string>
-
         methods?: any
     }
 
@@ -119,20 +114,17 @@ declare namespace WTS {
          * 创建 WebSocket 连接
          * 基础库 1.7.0 之前 一个微信小程序同时只能有一个 WebSocket 连接 如果当前已存在一个 WebSocket 连接 会自动关闭该连接 并重新创建一个 WebSocket 连接 基础库版本 1.7.0 及以后 支持存在多个 WebSokcet 连接 每次成功调用 wx.connectSocket 会返回一个新的 SocketTask
          */
-        connectSocket(param: ConnectSocketParam): void;
+        connectSocket(param: ConnectSocketParam): SocketTask;
         /**监听 WebSocket 打开 */
         onSocketOpen(callback: (res?: any) => void): void;
         /**监听 WebSocket 错误 */
         onSocketError(callback: (res?: any) => void): void;
-        /**
-         * 发送 WebSocket 消息
-         * 通过 WebSocket 连接发送数据 需要先 wx.connectSocket 并在 wx.onSocketOpen 回调之后才能发送
-        */
-        sendSocketMessage(message: SocketMessage): void;
+        /**在 wx.onSocketOpen 回调之后才能发送*/
+        sendSocketMessage(message: SocketSend): void;
         /**接受 WebSocket 消息 */
         onSocketMessage(callback: (res?: { data: string | ArrayBuffer }) => void): void;
         /**关闭 WebSocket 连接 */
-        closeSocket(param: CloseSocketParam): void;
+        closeSocket(param: SocketClose): void;
         /**监听 WebSocket 关闭 */
         onSocketClose(callback: (res?: any) => void): void;
 
@@ -196,7 +188,7 @@ declare namespace WTS {
         createVideoContext(videoId: string): VideoContext;
         /**创建并返回 camera 上下文 cameraContext 对象 cameraContext 与页面的 camera 组件绑定 一个页面只能有一个camera 通过它可以操作对应的 <camera/> 组件 */
         createCameraContext(): CameraContext;
-
+        createIntersectionObserver(target: any, options: IntersectionOptions): IntersectionObserver
         // 文件
         /**保存文件 */
         saveFile(param: SaveFileParam): void;
@@ -211,7 +203,6 @@ declare namespace WTS {
          * 支持格式 doc/x,xls/x,ppt/x,pdf
          */
         openDocument(param: OpenDocumentParam): void;
-
         // 数据 API 列表
         /**获取本地数据缓存 */
         getStorage(param: GetStorageParam): void;
@@ -236,7 +227,6 @@ declare namespace WTS {
         getStorageInfo(pram: StorageInfoParam): void;
         /**同步获取当前storage的相关信息 */
         getStorageInfoSync(): StorageInfo;
-
         // 位置 API 列表
         /**获取当前的地理位置 速度 */
         getLocation(param: GetLocationParam): void;
@@ -246,7 +236,6 @@ declare namespace WTS {
         chooseLocation(param: ChooseLocationParam): void;
         /**创建并返回 map 上下文 mapContext 对象 */
         createMapContext(mapId: string): void;
-
         // 设备 API 列表
         /**获取网络类型 */
         getNetworkType(param: NetworkTypeParam): void;
@@ -266,7 +255,6 @@ declare namespace WTS {
         onCompassChange(callback: (res?: CompassInfo) => void): void;
         /**打电话 */
         makePhoneCall(param: PhoneCallParam): void;
-
         //交互反馈
         /**显示消息提示框 */
         showToast(param: ToastParam): void;
@@ -276,7 +264,6 @@ declare namespace WTS {
         showModal(param: ModalParam): void;
         /**显示操作菜单 */
         showActionSheet(param: ActionSheetParam): void;
-
         // 界面 API 列表
         /**设置置顶信息 */
         setTopBarText(param: TopBarTextParam): void;
@@ -297,9 +284,9 @@ declare namespace WTS {
         /**把当前画布的内容导出生成图片 并返回文件路径 */
         canvasToTempFilePath(param: CanvasToTempFilePathParam): void;
         /**
-       * @deprecated 不推荐使用
-       * @description 创建绘图上下文
-       */
+         * @deprecated 不推荐使用
+         * @description 创建绘图上下文
+         */
         createContext(): CanvasContext;
         /**
          * @deprecated 不推荐使用
@@ -308,7 +295,6 @@ declare namespace WTS {
         drawCanvas(param: DrawCanvasParam): void;
         /**创建 canvas 绘图上下文(指定 canvasId) */
         createCanvasContext(canvasId: string): CanvasContext;
-
         /**隐藏键盘 */
         hideKeyboard(): void;
         /**停止下拉刷新动画 */
@@ -317,8 +303,7 @@ declare namespace WTS {
          * @since 1.5.0
          * @description 开始下拉刷新 调用后触发下拉刷新动画 效果与用户手动下拉刷新一致
          */
-        startPullDownRefresh(param: CallbackWithErrMsgParam): never;
-
+        startPullDownRefresh(param: ErrMsgCallback): never;
         // 开放接口
         /**登录 */
         login(param: LoginParam): void;
@@ -332,7 +317,6 @@ declare namespace WTS {
         switchTab(param: SwitchTabParam): void;
         /**调起客户端扫码界面 扫码成功后返回对应的结果 */
         scanCode(param: ScanCodeParam): void;
-
         // 蓝牙相关
         /**初始化蓝牙适配器 */
         openBluetoothAdapter(param: Callback): void;
@@ -345,7 +329,7 @@ declare namespace WTS {
         /**开始搜寻附近的蓝牙外围设备 */
         startBluetoothDevicesDiscovery(param: BluetoothDevicesDiscoveryParam): void;
         /**停止搜寻附近的蓝牙外围设备 */
-        stopBluetoothDevicesDiscovery(param: CallbackWithErrMsgParam): void;
+        stopBluetoothDevicesDiscovery(param: ErrMsgCallback): void;
         /**获取所有已发现的蓝牙设备 包括已经和本机处于连接状态的设备 */
         getBluetoothDevices(param: BluetoothDevicesParam): void;
         /**监听寻找到新设备的事件 */
@@ -370,48 +354,38 @@ declare namespace WTS {
         notifyBLECharacteristicValueChange(param: BLECharacteristicValueChangedParam): void;
         /**监听低功耗蓝牙设备的特征值变化 必须先启用notify */
         onBLECharacteristicValueChange(callback: (res: { deviceId: string; connected: boolean; characteristicId: string; value: ArrayBuffer }) => void): void;
-
         /**调起用户编辑收货地址原生界面 并在编辑完成后返回用户选择的地址 */
         chooseAddress(param: AddressParam): void;
-
         /**调起客户端小程序设置界面 返回用户设置的操作结果 */
         openSetting(param: SettingParam): void;
         /**获取用户的当前设置 */
         getSetting(param: SettingParam): void;
         /**提前授权 */
         authorize(param: AuthorizeParam): void;
-
         /**关闭所有页面 打开到应用内的某个页面 */
         reLaunch(param: ReLaunchParam): void;
-
         /**将 ArrayBuffer 数据转成 Base64 字符串 */
         arrayBufferToBase64(data: ArrayBuffer): string;
         /**将 Base64 字符串转成 ArrayBuffer 数据 */
         base64ToArrayBuffer(data: string): ArrayBuffer;
-
         /**显示 loading 提示框 */
         showLoading(param: LoadingParam): void;
         /**隐藏消息提示框 */
         hideLoading(): void;
-
         /**开始监听加速度数据 */
         startAccelerometer(param: Callback): void;
         /**停止监听加速度数据 */
         stopAccelerometer(param: Callback): void;
-
         /**设置系统剪贴板的内容 */
         setClipboardData(param: SetClipboardParam): void;
         /**获取系统剪贴板内容 */
         getClipboardData(param: Callback): void;
-
         /**批量添加卡券 */
         addCard(param: CardParam): void;
         /**查看微信卡包中的卡券 */
         openCard(param: CardParam): void;
-
         /**监听网络状态变化 */
         onNetworkStatusChange(callback: (res: { isConnected: boolean; networkType: string; }) => void): void;
-
         /**显示分享按钮 */
         showShareMenu(param: ShareMenuParam): void;
         /**隐藏分享按钮 */
@@ -420,7 +394,6 @@ declare namespace WTS {
         getShareInfo(param: ShareInfoParam): void;
         /**更新转发属性 */
         updateShareMenu(param: ShareMenuParam): void;
-
         /**获取第三方平台自定义的数据字段 */
         getExtConfig(param: ExtConfigParam): void;
         /**获取第三方平台自定义的数据字段的同步接口 */
@@ -430,23 +403,20 @@ declare namespace WTS {
          * @param param 使用${API}.${method}.${param}.${options}或者${component}.${attribute}.${option}方式来调用
          */
         canIUse(param: string): never;
-
         /**开始搜索附近的iBeacon设备 */
-        startBeaconDiscovery(param: CallbackWithErrMsgParam): void;
+        startBeaconDiscovery(param: ErrMsgCallback): void;
         /**停止搜索附近的iBeacon设备 */
-        stopBeaconDiscovery(param: CallbackWithErrMsgParam): void;
+        stopBeaconDiscovery(param: ErrMsgCallback): void;
         /**获取所有已搜索到的iBeacon设备 */
         getBeacons(param: BeaconsParam): void;
         /**监听 iBeacon 设备的更新事件 */
         onBeaconUpdate(callback: (res: { beacons: Array<IBeacon> }) => void): void;
         /**监听 iBeacon 服务的状态变化 */
         onBeaconServiceChange(callback: (res: { /**服务目前是否可用 */available: boolean; /**目前是否处于搜索状态 */discovering: boolean }) => void): void;
-
         /**获取屏幕亮度 */
         getScreenBrightness(param: GetScreenBrightnessParam): void;
         /**设置屏幕亮度 */
         setScreenBrightness(param: SetScreenBrightnessParam): void;
-
         /**保存联系人到系统通讯录 */
         addPhoneContact(param: AddPhoneContactParam): void;
         /**使手机发生较长时间的振动 400ms */
@@ -492,19 +462,24 @@ declare namespace WTS {
          * @description 开始 SOTER 生物认证
          */
         startSoterAuthentication(param: StartSoterAuthenticationParam): never;
-        /**获取设备内是否录入如指纹等生物信息的接口 */
+        /**
+         * @description 获取设备内是否录入如指纹等生物信息的接口 
+         * */
         checkIsSoterEnrolledInDevice(param: CheckIsSoterEnrolledInDeviceParam): never;
         /**
          * @since 1.5.0
          * @description 选择用户的发票抬头
          */
         chooseInvoiceTitle(param: ChooseInvoiceTitleParam): never;
-
         /**
          * 获取日志管理器对象
          * @since 2.1.0
          */
         getLogManager(): LogManager;
+        /**
+         * @description 获取更新管理器对象
+         */
+        getUpdateManager(): UpdateManager;
     }
 
     interface Callback {
@@ -515,11 +490,9 @@ declare namespace WTS {
         /**接口调用结束的回调函数(调用成功/失败都会执行) */
         complete?: Function;
     }
-
-    interface CallbackWithErrMsgParam extends Callback {
+    interface ErrMsgCallback extends Callback {
         success?: (res?: {/**成功：ok 错误：详细信息 */errMsg: string }) => void;
     }
-
     interface RequestParam extends Callback {
         /**开发者服务器接口地址 */
         url: string;
@@ -539,19 +512,15 @@ declare namespace WTS {
         /**收到开发者服务成功返回的回调函数 res = { data: '开发者服务器返回的内容' } */
         success?: (res?: HttpResponse) => void;
     }
-
     interface RequestTask {
         abort(): never;
     }
-
     interface HttpResponse {
         data?: Object | string | ArrayBuffer;
         errMsg: string;
         statusCode: number;
-        /**@since 1.2.0 */
         header?: Object;
     }
-
     interface UploadParam extends Callback {
         /**开发者服务器 url */
         url: string;
@@ -564,31 +533,24 @@ declare namespace WTS {
         /**HTTP 请求中其他额外的 form data */
         formData?: Object;
     }
-
     interface UploadTask {
         onProgressUpdate: (res: { progress: number; totalBytesSent: number; totalBytesExpectedToSend: number; }) => never;
         abort(): never;
     }
-
     interface DownloadParam extends Callback {
         /**下载资源的 url */
         url: string;
-        /**
-         * 下载资源的类型
-         * 用于客户端识别处理 有效值: image|audio|video
-         */
+        /** image|audio|video */
         type?: string;
         /**HTTP 请求 Header */
         header?: Object;
         /**	下载成功后以 tempFilePath 的形式传给页面 res = { tempFilePath: '文件的临时路径' } */
         success?: (res?: { tempFilePath: string }) => void
     }
-
     interface DownloadTask {
         onProgressUpdate: (res: { progress: number; totalBytesWritten: number; totalBytesExpectedToWrite: number; }) => never;
         abort(): never;
     }
-
     interface ConnectSocketParam extends Callback {
         /**开发者服务器接口地址 必须是 HTTPS 协议 且域名必须是后台配置的合法域名 */
         url: string;
@@ -601,19 +563,22 @@ declare namespace WTS {
         /**子协议数组 */
         protocols?: Array<string>;
     }
-
-    interface SocketMessage extends Callback {
-        /**需要发送的内容 */
+    interface SocketTask {
+        send(send: SocketSend): void
+        close(close: SocketClose): void
+        onOpen(callback: (header: any) => void): void
+        onClose(callback: (header: any) => void): void
+        onError(callback: (res: { data: string | ArrayBuffer }) => void): void
+        onMessage(callback: (res: { data: string | ArrayBuffer }) => void): void
+    }
+    interface SocketSend extends Callback {
         data: string | ArrayBuffer;
     }
-
-    interface CloseSocketParam extends Callback {
-        /**一个数字值表示关闭连接的状态号 表示连接被关闭的原因 如果这个参数没有被指定 默认的取值是1000 */
+    interface SocketClose extends Callback {
         code?: number;
         /**一个可读的字符串 表示连接被关闭的原因 这个字符串必须是不长于123字节的UTF-8 文本 */
         reason?: string;
     }
-
     interface ChooseImageParam extends Callback {
         /**最多可以选择的图片张数 默认9 */
         count?: number;
@@ -677,16 +642,13 @@ declare namespace WTS {
         /**指定帧大小 单位 KB 传入 frameSize 后 每录制指定帧大小的内容后 会回调录制的文件内容 不指定则不会回调 暂仅支持 mp3 格式  */
         frameSize?: number;
     }
-
     interface VoiceParam extends Callback {
         /**需要播放的语音文件的文件路径 */
         filePath: string;
     }
-
     interface GetBackgroundAudioPlayerStateParam extends Callback {
         success?: (res?: BackgroundAudioPlayerState) => void;
     }
-
     interface BackgroundAudioPlayerState {
         /**选定音频的长度 单位:s 只有在当前有音乐播放时返回 */
         duration: number;
@@ -699,7 +661,6 @@ declare namespace WTS {
         /**歌曲数据链接 只有在当前有音乐播放时返回 */
         dataUrl: string;
     }
-
     interface PlayBackgroundAudioParam extends Callback {
         /**音乐链接 */
         dataUrl: string;
@@ -708,22 +669,18 @@ declare namespace WTS {
         /**封面URL */
         coverImgUrl?: string;
     }
-
     interface SeekBackgroundAudioParam extends Callback {
         /**音乐位置 单位:秒 */
         position: number;
     }
-
     interface SaveFileParam extends Callback {
         /**需要保存的文件的临时路径 */
         tempFilePath: string;
         success?: (res?: { savedFilePath?: string }) => void;
     }
-
     interface FileListParam extends Callback {
         success?: (res?: { errMsg: string, fileList: Array<FileInfo> }) => void;
     }
-
     interface FileInfo {
         /**文件的本地路径 */
         filePath: string;
@@ -732,31 +689,26 @@ declare namespace WTS {
         /**文件大小 单位B */
         size: number;
     }
-
     interface FileInfoParam extends Callback {
         /**文件路径 */
         filePath: string;
         success?: (res?: { errMsg: string, size: number, createTime: number }) => void;
     }
-
     interface RemoveFileParam extends Callback {
         /**需要删除的文件路径 */
         filePath: string;
     }
-
     interface OpenDocumentParam extends Callback {
         /**文件路径 可通过 downFile 获得 */
         filePath: string;
         /**文件类型 指定文件类型打开文件 */
         fileType?: 'doc' | 'xls' | 'ppt' | 'pdf' | 'docx' | 'xlsx' | 'pptx';
     }
-
     interface ChooseVideoParam extends Callback {
         /**album 从相册选视频 camera 使用相机拍摄 默认为:['album', 'camera'] */
         sourceType?: Array<string>;
         /**
-         * @since 1.6.0
-         * @description 是否压缩所选的视频源文件 默认值为true 需要压缩
+         * 默认为true
          */
         compressed?: boolean;
         /**拍摄视频最长拍摄时间 单位秒 最长支持60秒 */
@@ -766,7 +718,6 @@ declare namespace WTS {
         /**接口调用成功 返回视频文件的临时文件路径 */
         success?: (res?: VideoInfo) => void;
     }
-
     interface AudioContext {
         /**设置音频的地址 */
         setSrc(src: string): void;
@@ -777,7 +728,6 @@ declare namespace WTS {
         /**跳转到指定位置 单位 s */
         seek(position: number): void;
     }
-
     interface InnerAudioContext {
         /**音频的数据链接 用于直接播放 */
         src: string;
@@ -828,7 +778,6 @@ declare namespace WTS {
         /**音频完成 seek 操作事件 */
         onSeeked: () => void;
     }
-
     interface VideoContext {
         /**播放 */
         play(): never;
@@ -845,7 +794,6 @@ declare namespace WTS {
         /**退出全屏 */
         exitFullScreen(): never;
     }
-
     interface VideoInfo {
         /**选定视频的临时文件路径 */
         tempFilePath: string;
@@ -858,7 +806,6 @@ declare namespace WTS {
         /**返回选定视频的宽 */
         width: number;
     }
-
     interface CameraContext {
         /**拍照 可指定质量 成功则返回图片 */
         takePhoto(param: CameraContextTakePhotoParam): void;
@@ -867,44 +814,36 @@ declare namespace WTS {
         /**结束录像 成功则返回封面与视频 */
         stopRecord(param: CameraContextStopRecord): void;
     }
-
     interface CameraContextTakePhotoParam extends Callback {
         /**成像质量 值为high, normal, low 默认normal */
         quality?: 'high' | 'normal' | 'low';
         success?: (res?: { tempImagePath: string }) => void;
     }
-
     interface CameraContextStartRecordParam extends Callback {
         /**超过30s或页面onHide时会结束录像 */
         timeoutCallback?: (res?: { tempThumbPath: string; tempVideoPath: string }) => void;
     }
-
     interface CameraContextStopRecord extends Callback {
         success?: (res?: { tempThumbPath: string; tempVideoPath: string }) => void;
     }
-
     interface SetStorageParam extends Callback {
         /**本地缓存中的指定的 key */
         key: string;
         /**需要存储的内容 */
         data: any;
     }
-
     interface GetStorageParam extends Callback {
         /**本地缓存中的指定的 key */
         key: string;
         success: (res?: { data: any }) => void;
     }
-
     interface RemoveStorageParam extends Callback {
         key: string;
         success?: (res?: { data: any }) => void;
     }
-
     interface StorageInfoParam extends Callback {
         success: (res?: { data: StorageInfo }) => void;
     }
-
     interface StorageInfo {
         /**当前storage中所有的key */
         keys: Array<string>;
@@ -913,14 +852,12 @@ declare namespace WTS {
         /**限制的空间大小 单位kb */
         limitSize: number;
     }
-
     interface GetLocationParam extends Callback {
         /**默认为 wgs84 返回 gps 坐标 gcj02 返回可用于wx.openLocation的坐标 */
         type?: string;
         /**接口调用成功的回调函数 */
         success: (res?: LocationInfo) => void;
     }
-
     interface TranslateMarkerParam extends Callback {
         /**指定marker */
         markerId: number;
@@ -935,7 +872,6 @@ declare namespace WTS {
         /**动画结束回调函数 */
         animationEnd?: Function;
     }
-
     interface LocationInfo {
         /**纬度 浮点数 范围为 -90~90 负数表示南纬 */
         latitude: number;
@@ -952,7 +888,6 @@ declare namespace WTS {
         /**水平精度 单位 m */
         horizontalAccuracy: number;
     }
-
     interface OpenLocationParam extends Callback {
         /**纬度 范围为 -90~90 负数表示南纬 */
         latitude: number;
@@ -965,11 +900,9 @@ declare namespace WTS {
         /**地址的详细说明 */
         address?: string;
     }
-
     interface ChooseLocationParam extends Callback {
         success: (res?: ChoosedLoaction) => void;
     }
-
     interface ChoosedLoaction {
         /**位置名称 */
         name: string;
@@ -980,15 +913,12 @@ declare namespace WTS {
         /**经度 浮点数 范围为-180~180 负数表示西经 */
         longitude: number
     }
-
     interface NetworkTypeParam extends Callback {
         success: (res?: { /**返回网络类型2g|3g|4g|wifi */networkType: string }) => void;
     }
-
     interface SystemInfoParam extends Callback {
         success: (res?: SystemInfo) => void;
     }
-
     interface SystemInfo {
         /**手机品牌 */
         brand: string;
@@ -1017,7 +947,6 @@ declare namespace WTS {
         /**客户端基础库版本 */
         SDKVersion: string;
     }
-
     interface AccelerometerInfo {
         /**X 轴 */
         x: number;
@@ -1026,18 +955,15 @@ declare namespace WTS {
         /**Z 轴 */
         z: number;
     }
-
     interface CompassInfo {
         /**面对的方向度数 */
         direction: number;
     }
-
     interface PhoneCallParam extends Callback {
         /**需要拨打的电话号码 */
         phoneNumber: string;
         success?: () => void;
     }
-
     interface ToastParam extends Callback {
         /**提示的内容 */
         title: string;
@@ -1050,7 +976,6 @@ declare namespace WTS {
         /**是否显示透明蒙层 防止触摸穿透 默认 false */
         mask?: boolean;
     }
-
     interface ModalParam extends Callback {
         /**提示的标题 */
         title: string;
@@ -1072,7 +997,6 @@ declare namespace WTS {
          */
         success?: (res?: { confirm: boolean, cancel: boolean }) => void;
     }
-
     interface ActionSheetParam extends Callback {
         /**按钮的文字数组 数组长度最大为10个 */
         itemList: Array<string>;
@@ -1080,29 +1004,24 @@ declare namespace WTS {
         itemColor?: string;
         success?: (res?: ActionSheetResponse) => void;
     }
-
     interface ActionSheetResponse {
         /**用户是否取消选择 */
         cancel: boolean;
         /**用户点击的按钮 从上到下的顺序 从0开始 */
         tapIndex: number;
     }
-
     interface TopBarTextParam extends Callback {
         /**置顶栏文字内容 */
         text: string;
     }
-
     interface NavigationBarTitleParam extends Callback {
         /**页面标题 */
         title?: string;
     }
-
     interface NavigateToParam extends Callback {
         /**需要跳转的应用内页面的路径 */
         url: string;
     }
-
     interface AnimationParam {
         /**动画持续时间 单位ms 默认值 400 */
         duration?: number;
@@ -1113,7 +1032,6 @@ declare namespace WTS {
         /**设置transform- origin 默认为"50% 50% 0" */
         transformOrigin?: string;
     }
-
     /**
      * 动画实例可以调用以下方法来描述动画
      * 调用结束后会返回自身
@@ -1634,7 +1552,7 @@ declare namespace WTS {
     }
 
     /**自定以分享内容 */
-    interface PageShareData extends CallbackWithErrMsgParam {
+    interface PageShareData extends ErrMsgCallback {
         /**分享标题 默认 当前小程序名称 */
         title?: string;
         /**分享描述 默认 当前小程序名称 */
@@ -1662,7 +1580,7 @@ declare namespace WTS {
         success?: (res?: AdapterState) => void;
     }
 
-    interface BluetoothDevicesDiscoveryParam extends CallbackWithErrMsgParam {
+    interface BluetoothDevicesDiscoveryParam extends ErrMsgCallback {
         /**蓝牙设备主 service 的 uuid 列表 */
         services: Array<string>;
     }
@@ -1692,7 +1610,7 @@ declare namespace WTS {
         success: (res: { devices: Array<{ /**蓝牙设备名称 某些设备可能没有 */name: string, /**用于区分设备的 id */deviceId: string }>, /**成功：ok 错误：详细信息 */errMsg: string }) => void;
     }
 
-    interface BLEConnectionParam extends CallbackWithErrMsgParam {
+    interface BLEConnectionParam extends ErrMsgCallback {
         /**蓝牙设备 id 参考 getDevices 接口 */
         deviceId: string;
     }
@@ -1720,7 +1638,7 @@ declare namespace WTS {
         success: (res: { characteristic: { characteristicId: string; serviceId: object; value: ArrayBuffer; }; errMsg: string; }) => void;
     }
 
-    interface WriteBLECharacteristicValueParam extends CallbackWithErrMsgParam {
+    interface WriteBLECharacteristicValueParam extends ErrMsgCallback {
         /**蓝牙设备 id */
         deviceId: string;
         /**蓝牙特征值对应服务的 uuid */
@@ -1731,7 +1649,7 @@ declare namespace WTS {
         value: ArrayBuffer;
     }
 
-    interface BLECharacteristicValueChangedParam extends CallbackWithErrMsgParam {
+    interface BLECharacteristicValueChangedParam extends ErrMsgCallback {
         /**蓝牙设备 id */
         deviceId: string;
         /**蓝牙特征值对应服务的 uuid */
@@ -1781,7 +1699,7 @@ declare namespace WTS {
         }) => void;
     }
 
-    interface AuthorizeParam extends CallbackWithErrMsgParam {
+    interface AuthorizeParam extends ErrMsgCallback {
         scope: string;
     }
 
@@ -1808,7 +1726,7 @@ declare namespace WTS {
         data: string;
     }
 
-    interface CardParam extends CallbackWithErrMsgParam {
+    interface CardParam extends ErrMsgCallback {
         /**需要添加的卡券列表 */
         cardList: Array<any>;
     }
@@ -1868,7 +1786,7 @@ declare namespace WTS {
         value: number;
     }
 
-    interface AddPhoneContactParam extends CallbackWithErrMsgParam {
+    interface AddPhoneContactParam extends ErrMsgCallback {
         /**头像本地文件路径 */
         photoFilePath?: string;
         /**昵称 */
@@ -1939,7 +1857,7 @@ declare namespace WTS {
         success?: (res: { errMsg: string; encryptedData: string }) => void;
     }
 
-    interface SaveImageToPhotosAlbumParam extends CallbackWithErrMsgParam {
+    interface SaveImageToPhotosAlbumParam extends ErrMsgCallback {
         /**图片文件路径 可以是临时文件路径也可以是永久文件路径 */
         filePath: string;
     }
@@ -1998,7 +1916,7 @@ declare namespace WTS {
         onWaiting(callback: Function): void;
     }
 
-    interface NavigateToMiniProgramParam extends CallbackWithErrMsgParam {
+    interface NavigateToMiniProgramParam extends ErrMsgCallback {
         /**要打开的小程序 appId*/
         appId: string;
         /**打开的页面路径 如果为空则打开首页 */
@@ -2009,7 +1927,7 @@ declare namespace WTS {
         envVersion?: string;
     }
 
-    interface NavigateBackMiniProgramParam extends CallbackWithErrMsgParam {
+    interface NavigateBackMiniProgramParam extends ErrMsgCallback {
         /**需要返回给上一个小程序的数据 上一个小程序可在 App.onShow() 中获取到这份数据 */
         extraData: object;
     }
@@ -2061,7 +1979,7 @@ declare namespace WTS {
         success: (res: { size: number; digest: string; errMsg: string }) => void;
     }
 
-    interface SetNavigationBarColorParam extends CallbackWithErrMsgParam {
+    interface SetNavigationBarColorParam extends ErrMsgCallback {
         frontColor: string;
         backgroundColor: string;
         animation?: {
@@ -2070,11 +1988,11 @@ declare namespace WTS {
         }
     }
 
-    interface SetEnableDebugParam extends CallbackWithErrMsgParam {
+    interface SetEnableDebugParam extends ErrMsgCallback {
         enableDebug: boolean;
     }
 
-    interface SetKeepScreenOnParam extends CallbackWithErrMsgParam {
+    interface SetKeepScreenOnParam extends ErrMsgCallback {
         keepScreenOn: boolean;
     }
 
@@ -2091,16 +2009,13 @@ declare namespace WTS {
         authContent?: string;
         success?: (res: { errCode: number; authMode: string; resultJSON: string; resultJSONSignature: string; errMsg: string; }) => void;
     }
-
     interface CheckIsSoterEnrolledInDeviceParam extends Callback {
         checkAuthMode: 'fingerPrint' | 'facial' | 'speech';
         success?: (res: { isEnrolled: boolean, errMsg: string; }) => void;
     }
-
     interface ChooseInvoiceTitleParam extends Callback {
         success?: (res: InvoiceTitle) => void;
     }
-
     interface InvoiceTitle {
         /**抬头类型 0 单位 1 个人 */
         type: string;
@@ -2119,7 +2034,32 @@ declare namespace WTS {
         /**接口调用结果 */
         errMsg: string;
     }
-
+    interface IntersectionOptions {
+        thresholds?: number[],
+        initialRatio?: number,
+        observeAll?: boolean
+    }
+    interface IntersectionMargins {
+        left: number
+        right: number
+        top: number
+        bottom: number
+    }
+    interface IntersectionCallback {
+        (intersectionRatio: number, intersectionRect: ClientRect, boundingClientRect: ClientRect, relativeRect: ClientRect, time: number): void
+    }
+    interface IntersectionObserver {
+        relativeTo: (selector: string, margins?: Partial<IntersectionMargins>, ) => IntersectionObserver
+        relativeToViewport: (margins?: Partial<IntersectionMargins>, ) => IntersectionObserver
+        observe: (selector: string, callback?: IntersectionCallback) => void
+        disconnect: () => void
+    }
+    interface UpdateManager {
+        onCheckForUpdate(callback: (hasUpdate: boolean) => void);
+        onUpdateReady(callback: () => void);
+        applyUpdate(): any;
+        onUpdateFailed(callback: () => void);
+    }
     interface LogManager {
         warn(...arg: any): void;
         log(...arg: any): void;
