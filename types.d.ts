@@ -120,11 +120,11 @@ declare namespace wts {
         /**监听 WebSocket 错误 */
         onSocketError(callback: (res?: any) => void): void;
         /**在 wx.onSocketOpen 回调之后才能发送*/
-        sendSocketMessage(message: SocketSend): void;
+        sendSocketMessage(message: SocketMessage & Callback): void;
         /**接受 WebSocket 消息 */
         onSocketMessage(callback: (res?: { data: string | ArrayBuffer }) => void): void;
         /**关闭 WebSocket 连接 */
-        closeSocket(param: SocketClose): void;
+        closeSocket(param: SocketCloser & Callback): void;
         /**监听 WebSocket 关闭 */
         onSocketClose(callback: (res?: any) => void): void;
 
@@ -279,6 +279,27 @@ declare namespace wts {
         redirectTo(param: NavigateToParam): void;
         /**关闭当前页面 回退前一页面 */
         navigateBack(param?: { /**返回的页面数 如果 delta 大于现有页面数 则返回到首页 默认1 */delta: number }): void;
+        /**
+         * @since 1.9.0 all tabbar api need >= 1.9.0
+         * @description 设置某一项Item的内容
+         */
+        setTabBarItem(option: TabbarItemOption): void
+        setTabBarStyle(option: TabbarStyleOption): void
+        hideTabBar(option: TabbarDisplayOption): void
+        showTabBar(option: TabbarDisplayOption): void
+        hideTabBarRedDot(option: TabbarIndexOption): void
+        showTabBarRedDot(option: TabbarIndexOption): void
+        removeTabBarBadge(option: TabbarIndexOption): void
+        setTabBarBadge(option: TabbarBadgeOption): void
+        /**
+         * @since 2.1.0
+         * @param textStyle 下拉背景字体 loading 图的样式
+         */
+        setBackgroundTextStyle(opt: { textStyle: 'dark' | 'light' } & Callback)
+        /**
+         * @since 2.1.0 设置背景色
+         */
+        setBackgroundColor(option: BackgroundColorOption): void
         /**动画 */
         createAnimation(param: AnimationParam): Animation;
         /**把当前画布的内容导出生成图片 并返回文件路径 */
@@ -493,6 +514,7 @@ declare namespace wts {
     interface ErrMsgCallback extends Callback {
         success?: (res?: {/**成功：ok 错误：详细信息 */errMsg: string }) => void;
     }
+    type HttpMethod = 'OPTIONS' | 'GET' | 'HEAD' | 'POST' | 'PUT' | 'DELETE' | 'TRACE' | 'CONNECT'
     interface RequestParam extends Callback {
         /**开发者服务器接口地址 */
         url: string;
@@ -501,7 +523,7 @@ declare namespace wts {
         /**设置请求的 header,header 中不能设置 Referer */
         header?: Object
         /**默认为 GET 有效值:OPTIONS,GET,HEAD,POST,PUT,DELETE,TRACE,CONNECT */
-        method?: 'OPTIONS' | 'GET' | 'HEAD' | 'POST' | 'PUT' | 'DELETE' | 'TRACE' | 'CONNECT';
+        method?: HttpMethod;
         /**如果设为json 会尝试对返回的数据做一次 JSON.parse */
         dataType?: string;
         /**
@@ -511,15 +533,24 @@ declare namespace wts {
         responseType?: 'text' | 'arraybuffer';
         /**收到开发者服务成功返回的回调函数 res = { data: '开发者服务器返回的内容' } */
         success?: (res?: HttpResponse) => void;
+        complete?: (res?: HttpResponse) => void
     }
     interface RequestTask {
         abort(): never;
     }
+    interface HttpHeader {
+        /**GTM time str */
+        Date: string
+        Allow: string
+        ContentType: string
+        ContentLength: string
+        [key: string]: string
+    }
     interface HttpResponse {
-        data?: Object | string | ArrayBuffer;
+        data?: any | string | ArrayBuffer;
         errMsg: string;
         statusCode: number;
-        header?: Object;
+        header?: HttpHeader;
     }
     interface UploadParam extends Callback {
         /**开发者服务器 url */
@@ -564,17 +595,18 @@ declare namespace wts {
         protocols?: Array<string>;
     }
     interface SocketTask {
-        send(send: SocketSend): void
-        close(close: SocketClose): void
+        send(send: SocketMessage & Callback): void
+        close(close: SocketCloser & Callback): void
         onOpen(callback: (header: any) => void): void
-        onClose(callback: (header: any) => void): void
-        onError(callback: (res: { data: string | ArrayBuffer }) => void): void
-        onMessage(callback: (res: { data: string | ArrayBuffer }) => void): void
+        onClose(callback: (res: SocketCloser) => void): void
+        onError(callback: (res: { errMsg: string }) => void): void
+        onMessage(callback: (res: SocketMessage) => void): void
     }
-    interface SocketSend extends Callback {
+    interface SocketMessage {
         data: string | ArrayBuffer;
     }
-    interface SocketClose extends Callback {
+    interface SocketCloser extends Callback {
+        /**关闭状态码 默认1000表示正常关闭 */
         code?: number;
         /**一个可读的字符串 表示连接被关闭的原因 这个字符串必须是不长于123字节的UTF-8 文本 */
         reason?: string;
@@ -1021,6 +1053,44 @@ declare namespace wts {
     interface NavigateToParam extends Callback {
         /**需要跳转的应用内页面的路径 */
         url: string;
+    }
+    interface TabbarIndexOption extends Callback {
+        /**从左往右的索引 */
+        index: number
+    }
+    interface TabbarItemOption extends TabbarIndexOption {
+        /**title 文字 */
+        text?: string
+        /**常规图片路径 建议尺寸81*61 要求为本地图片的绝对路径 */
+        iconPath?: string
+        /**选中图片路径 建议尺寸81*61 要求为本地图片的绝对路径 */
+        selectedIconPath?: string
+    }
+    interface TabbarStyleOption extends Callback {
+        /**文字颜色 hexColor */
+        color: number
+        /**选中色 hexColor 文字 */
+        selectedColor: string
+        /**背景色 hexColor */
+        backgroundColor: string
+        /**选中图片路径 建议尺寸81*61 要求为本地图片的绝对路径 */
+        borderStyle: 'black' | 'white'
+    }
+    interface TabbarDisplayOption extends Callback {
+        /**默认false */
+        animation?: boolean
+    }
+    interface TabbarBadgeOption extends TabbarIndexOption {
+        /**badge 内容 */
+        text: string
+    }
+    interface BackgroundColorOption extends Callback {
+        /**窗口背景色 */
+        backgroundColor: string
+        /**16进制 颜色 仅IOS 支持 */
+        backgroundColorTop: string
+        /**16进制 颜色 仅IOS 支持 */
+        backgroundColorBottom: string
     }
     interface AnimationParam {
         /**动画持续时间 单位ms 默认值 400 */

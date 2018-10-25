@@ -43,4 +43,120 @@ export interface WidgetConstructor {
     new (): Widget;
 }
 export declare function widget(inital?: InitalData): (target: WidgetConstructor) => void;
+export interface ImageFile {
+    path: string;
+    name: string;
+    file: string;
+}
+export declare class Network {
+    /**
+     * @default POST
+     * @description provide request methd
+     */
+    protected readonly method: wts.HttpMethod;
+    /**
+     * @default {}
+     * @description provide custom http headers
+     */
+    protected readonly header: any;
+    /**
+     * @description resove relative uri to full url
+     * @param path the relative uri
+     */
+    protected url(path: string): string;
+    /**
+     * @description you must provid an resover and return you business object
+     * @param resp the http response object
+     */
+    protected resolve(resp: wts.HttpResponse): any;
+    upload(file: ImageFile, loading?: boolean): Promise<string>;
+    anytask(path: string, data?: any, loading?: boolean): Promise<any>;
+    objtask<T>(c: new (json: any) => T, path: string, data?: any, loading?: boolean): Promise<T>;
+    arytask<T>(c: new (json: any) => T, path: string, data?: any, loading?: boolean): Promise<T[]>;
+}
+declare class Popver {
+    alert(content: string, confirm?: () => void): void;
+    dialog(content: string, confirm?: () => void, cancel?: () => void): void;
+    remind(ok: string, dismiss?: () => void): void;
+    error(err: Error): void;
+    waiting(title?: string): void;
+    idling(): void;
+}
+export declare const pop: Popver;
+export interface Listener {
+    onMessage(json: any, isOffline: boolean): any;
+}
+export declare class Socket {
+    isConnected: boolean;
+    private isConnecting;
+    private listeners;
+    private timer;
+    private pingTimeout;
+    private task;
+    private attemptTimes;
+    /**
+     * @default 10
+     * @description the max attempt times
+     */
+    protected attemptThreshold: number;
+    constructor();
+    private addObserve;
+    private affterClose;
+    private close;
+    private attempt;
+    private reattemp;
+    private timerFunc;
+    private connect;
+    private log;
+    start: () => void;
+    stop: () => void;
+    protected handle: (msg: any, isOffline: boolean) => void;
+    addListener: (listener: Listener) => void;
+    removeListener: (listener: Listener) => void;
+    /**
+     * subclass must impl this method to resolve url
+     * you must provide connect url
+     */
+    protected readonly url: string;
+    /**
+     * you mast tell me you login status
+     * @default false
+     */
+    protected readonly isLogin: boolean;
+    /**
+     * print debug info or not
+     */
+    protected readonly isDebug: boolean;
+    /**
+     * @default impl is return res.code === 4001 || res.code === 4002,4001,4002 is the default auth fail code
+     * @description if true socket will no more attemp adn didLogout will be call!
+     */
+    protected isAuthClose(res: wts.SocketCloser): boolean;
+    /** the staus observe . It will be call when socket never attemped */
+    protected didConnected(): void;
+    /** call when socket opend */
+    protected disConnected(): void;
+    /**
+     * @see isAuthClose
+     * @param res logout res
+     */
+    protected didLogout(res: wts.SocketCloser): void;
+    /** call when some error opend */
+    protected didError(error: Error): void;
+}
+/**
+ * @description local orm implements
+ */
+declare class Storage {
+    save<T extends StorageAble>(model: T): void;
+    find<T extends StorageAble>(c: new (json: any) => T, id: string | number): T;
+    all<T extends StorageAble>(c: new (json: any) => T): T[];
+}
+export interface StorageAble {
+    /** must provide major key for orm find */
+    id: string | number;
+    isEmpty: boolean;
+    className: string;
+}
+export declare const storage: Storage;
 export {};
