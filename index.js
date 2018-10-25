@@ -300,29 +300,24 @@ exports.pop = new Popver();
 var Socket = /** @class */ (function () {
     function Socket() {
         var _this = this;
-        this.isConnected = false;
-        this.isConnecting = false;
+        this._isConnected = false;
+        this._isConnecting = false;
         this.timer = null;
         this.pingTimeout = null;
-        /**
-         * @default 10
-         * @description the max attempt times
-         */
-        this.attemptThreshold = 10;
         this.addObserve = function () {
             if (!_this.task) {
                 return;
             }
             _this.task.onOpen(function (res) {
                 _this.log('WebSocket连接已打开！', res);
-                _this.isConnecting = false;
-                _this.isConnected = true;
+                _this._isConnecting = false;
+                _this._isConnected = true;
                 _this.didConnected();
             });
             _this.task.onError(function (res) {
                 _this.log('WebSocket连接打开失败，请检查！', res);
-                _this.isConnected = false;
-                _this.isConnecting = false;
+                _this._isConnected = false;
+                _this._isConnecting = false;
                 _this.didError(new Error(res.errMsg));
             });
             _this.task.onMessage(function (res) {
@@ -347,8 +342,8 @@ var Socket = /** @class */ (function () {
             });
         };
         this.affterClose = function () {
-            _this.isConnected = false;
-            _this.isConnecting = false;
+            _this._isConnected = false;
+            _this._isConnecting = false;
             _this.task = null;
             setTimeout(function () {
                 _this.attempt();
@@ -365,7 +360,7 @@ var Socket = /** @class */ (function () {
             });
         };
         this.attempt = function () {
-            if (_this.attemptTimes > 10) {
+            if (_this.attemptTimes > _this.maxAttemptTimes) {
                 exports.pop.alert('网络连接失败，请重试', function () { return _this.reattemp(); });
                 _this.disConnected();
                 return;
@@ -377,7 +372,7 @@ var Socket = /** @class */ (function () {
             _this.attempt();
         };
         this.timerFunc = function () {
-            if (!_this.isConnected) {
+            if (!_this._isConnected) {
                 _this.attempt();
                 return;
             }
@@ -399,16 +394,35 @@ var Socket = /** @class */ (function () {
             if (!_this.timer) {
                 return;
             }
-            if (_this.isConnected) {
+            if (_this._isConnected) {
                 return;
             }
-            if (_this.isConnecting) {
+            if (_this._isConnecting) {
                 return;
             }
-            _this.isConnecting = true;
+            _this._isConnecting = true;
             _this.task = wx.connectSocket({ url: _this.url });
+            _this.addObserve();
             _this.attemptTimes += 1;
         };
+        this.handle = function (msg, isOffline) {
+            if (msg.type == "PONG") {
+                if (_this.pingTimeout) {
+                    clearTimeout(_this.pingTimeout);
+                    _this.pingTimeout = null;
+                }
+                _this.log("收到pong消息：", msg);
+                return;
+            }
+            _this.listeners.forEach(function (ele) {
+                ele.onMessage(msg, isOffline);
+            });
+        };
+        /**
+         * @default 10
+         * @description the max attempt times
+         */
+        this.maxAttemptTimes = 10;
         this.start = function () {
             if (_this.timer) {
                 return;
@@ -426,19 +440,6 @@ var Socket = /** @class */ (function () {
             clearInterval(_this.timer);
             _this.timer = null;
             _this.close();
-        };
-        this.handle = function (msg, isOffline) {
-            if (msg.type == "PONG") {
-                if (_this.pingTimeout) {
-                    clearTimeout(_this.pingTimeout);
-                    _this.pingTimeout = null;
-                }
-                _this.log("收到pong消息：", msg);
-                return;
-            }
-            _this.listeners.forEach(function (ele) {
-                ele.onMessage(msg, isOffline);
-            });
         };
         this.addListener = function (listener) {
             _this.listeners.add(listener);
@@ -507,6 +508,20 @@ var Socket = /** @class */ (function () {
     /** call when some error opend */
     Socket.prototype.didError = function (error) {
     };
+    Object.defineProperty(Socket.prototype, "isConnected", {
+        get: function () {
+            return this._isConnected;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Socket.prototype, "isConnecting", {
+        get: function () {
+            return this._isConnecting;
+        },
+        enumerable: true,
+        configurable: true
+    });
     return Socket;
 }());
 exports.Socket = Socket;

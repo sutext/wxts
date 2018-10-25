@@ -86,19 +86,13 @@ export interface Listener {
     onMessage(json: any, isOffline: boolean): any;
 }
 export declare class Socket {
-    isConnected: boolean;
-    private isConnecting;
+    private _isConnected;
+    private _isConnecting;
     private listeners;
     private timer;
     private pingTimeout;
     private task;
     private attemptTimes;
-    /**
-     * @default 10
-     * @description the max attempt times
-     */
-    protected attemptThreshold: number;
-    constructor();
     private addObserve;
     private affterClose;
     private close;
@@ -107,11 +101,13 @@ export declare class Socket {
     private timerFunc;
     private connect;
     private log;
-    start: () => void;
-    stop: () => void;
-    protected handle: (msg: any, isOffline: boolean) => void;
-    addListener: (listener: Listener) => void;
-    removeListener: (listener: Listener) => void;
+    private handle;
+    constructor();
+    /**
+     * @default 10
+     * @description the max attempt times
+     */
+    protected maxAttemptTimes: number;
     /**
      * subclass must impl this method to resolve url
      * you must provide connect url
@@ -142,6 +138,12 @@ export declare class Socket {
     protected didLogout(res: wts.SocketCloser): void;
     /** call when some error opend */
     protected didError(error: Error): void;
+    start: () => void;
+    stop: () => void;
+    readonly isConnected: boolean;
+    readonly isConnecting: boolean;
+    addListener: (listener: Listener) => void;
+    removeListener: (listener: Listener) => void;
 }
 /**
  * @description local orm implements

@@ -273,35 +273,27 @@ export interface Listener {
     onMessage(json: any, isOffline: boolean);
 }
 export class Socket {
-    public isConnected: boolean = false;
-    private isConnecting: boolean = false;
+    private _isConnected: boolean = false;
+    private _isConnecting: boolean = false;
     private listeners: Set<Listener>;
     private timer: number = null;
     private pingTimeout: number = null;
     private task: wts.SocketTask
     private attemptTimes: number;
-    /**
-     * @default 10
-     * @description the max attempt times
-     */
-    protected attemptThreshold: number = 10
-    constructor() {
-        this.listeners = new Set<Listener>()
-    }
     private addObserve = () => {
         if (!this.task) {
             return
         }
         this.task.onOpen(res => {
             this.log('WebSocket连接已打开！', res);
-            this.isConnecting = false;
-            this.isConnected = true;
+            this._isConnecting = false;
+            this._isConnected = true;
             this.didConnected()
         })
         this.task.onError(res => {
             this.log('WebSocket连接打开失败，请检查！', res);
-            this.isConnected = false;
-            this.isConnecting = false;
+            this._isConnected = false;
+            this._isConnecting = false;
             this.didError(new Error(res.errMsg))
         })
         this.task.onMessage(res => {
@@ -325,8 +317,8 @@ export class Socket {
         })
     }
     private affterClose = () => {
-        this.isConnected = false;
-        this.isConnecting = false;
+        this._isConnected = false;
+        this._isConnecting = false;
         this.task = null
         setTimeout(() => {
             this.attempt();
@@ -343,7 +335,7 @@ export class Socket {
         })
     }
     private attempt = () => {
-        if (this.attemptTimes > 10) {
+        if (this.attemptTimes > this.maxAttemptTimes) {
             pop.alert('网络连接失败，请重试', () => this.reattemp())
             this.disConnected()
             return
@@ -355,7 +347,7 @@ export class Socket {
         this.attempt()
     }
     private timerFunc = () => {
-        if (!this.isConnected) {
+        if (!this._isConnected) {
             this.attempt();
             return
         }
@@ -377,14 +369,15 @@ export class Socket {
         if (!this.timer) {
             return;
         }
-        if (this.isConnected) {
+        if (this._isConnected) {
             return
         }
-        if (this.isConnecting) {
+        if (this._isConnecting) {
             return
         }
-        this.isConnecting = true;
+        this._isConnecting = true;
         this.task = wx.connectSocket({ url: this.url });
+        this.addObserve()
         this.attemptTimes += 1;
     }
     private log(msg: any, other?: any) {
@@ -392,25 +385,7 @@ export class Socket {
             console.log(msg, other || '')
         }
     }
-    public start = () => {
-        if (this.timer) {
-            return;
-        }
-        this.timer = setInterval(() => {
-            this.timerFunc();
-        }, 1000 * 30);
-        this.attemptTimes = 0
-        this.timerFunc();
-    }
-    public stop = () => {
-        if (!this.timer) {
-            return;
-        }
-        clearInterval(this.timer)
-        this.timer = null
-        this.close()
-    }
-    protected handle = (msg: any, isOffline: boolean) => {
+    private handle = (msg: any, isOffline: boolean) => {
         if (msg.type == "PONG") {
             if (this.pingTimeout) {
                 clearTimeout(this.pingTimeout)
@@ -423,12 +398,14 @@ export class Socket {
             ele.onMessage(msg, isOffline);
         });
     }
-    public addListener = (listener: Listener) => {
-        this.listeners.add(listener)
+    constructor() {
+        this.listeners = new Set<Listener>()
     }
-    public removeListener = (listener: Listener) => {
-        this.listeners.delete(listener);
-    }
+    /**
+     * @default 10
+     * @description the max attempt times
+     */
+    protected maxAttemptTimes: number = 10
     /**
      * subclass must impl this method to resolve url
      * you must provide connect url 
@@ -474,6 +451,36 @@ export class Socket {
     /** call when some error opend */
     protected didError(error: Error) {
 
+    }
+    public start = () => {
+        if (this.timer) {
+            return;
+        }
+        this.timer = setInterval(() => {
+            this.timerFunc();
+        }, 1000 * 30);
+        this.attemptTimes = 0
+        this.timerFunc();
+    }
+    public stop = () => {
+        if (!this.timer) {
+            return;
+        }
+        clearInterval(this.timer)
+        this.timer = null
+        this.close()
+    }
+    public get isConnected(): boolean {
+        return this._isConnected
+    }
+    public get isConnecting(): boolean {
+        return this._isConnecting
+    }
+    public addListener = (listener: Listener) => {
+        this.listeners.add(listener)
+    }
+    public removeListener = (listener: Listener) => {
+        this.listeners.delete(listener);
     }
 }
 /**
