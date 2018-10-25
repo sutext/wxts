@@ -65,6 +65,7 @@ declare namespace wts {
     }
     /**指定组件的生命周期函数 时间处理函数及方法等  */
     interface IComponent {
+        data?: any
         /**组件的对外属性 是属性名到属性设置的映射表
          * 属性设置中可包含三个字段
          * type 表示属性类型
@@ -88,6 +89,7 @@ declare namespace wts {
         relations?: any
         /**组件接受的外部样式类 */
         externalClasses?: Array<string>
+        /**组件方法列表 */
         methods?: any
     }
 
@@ -285,8 +287,8 @@ declare namespace wts {
          */
         setTabBarItem(option: TabbarItemOption): void
         setTabBarStyle(option: TabbarStyleOption): void
-        hideTabBar(option: TabbarDisplayOption): void
-        showTabBar(option: TabbarDisplayOption): void
+        hideTabBar(option?: TabbarDisplayOption): void
+        showTabBar(option?: TabbarDisplayOption): void
         hideTabBarRedDot(option: TabbarIndexOption): void
         showTabBarRedDot(option: TabbarIndexOption): void
         removeTabBarBadge(option: TabbarIndexOption): void
@@ -2125,7 +2127,7 @@ declare namespace wts {
         disconnect: () => void
     }
     interface UpdateManager {
-        onCheckForUpdate(callback: (hasUpdate: boolean) => void);
+        onCheckForUpdate(callback: (res: { hasUpdate: boolean }) => void);
         onUpdateReady(callback: () => void);
         applyUpdate(): any;
         onUpdateFailed(callback: () => void);

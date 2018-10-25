@@ -2,16 +2,15 @@ interface InitalData {
     [key: string]: any;
 }
 export declare class IApp {
-    /**
-     * @description global data 会被注入到每个页面中去，如果页面提供了相同的变量 将会覆盖 global 里面的值
-     */
-    global?: InitalData;
     [other: string]: any;
 }
 export interface IAppConstructor {
     new (): IApp;
 }
-export declare function app(): (target: IAppConstructor) => void;
+/**
+ * @description global data 会被注入到每个页面中去，如果页面提供了相同的变量 将会覆盖 global 里面的值
+ */
+export declare function app(global?: InitalData): (target: IAppConstructor) => void;
 export declare class IPage<D = {}> {
     [other: string]: any;
     readonly options: any;

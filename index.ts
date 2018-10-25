@@ -11,24 +11,22 @@ interface InitalData {
     [key: string]: any
 }
 export class IApp {
-    /**
-     * @description global data 会被注入到每个页面中去，如果页面提供了相同的变量 将会覆盖 global 里面的值
-     */
-    global?: InitalData
     [other: string]: any
 }
 export interface IAppConstructor {
     new(): IApp
 }
 let globalData: InitalData
-export function app() {
+/**
+ * @description global data 会被注入到每个页面中去，如果页面提供了相同的变量 将会覆盖 global 里面的值
+ */
+export function app(global?: InitalData) {
+    if (globalData) {
+        return
+    }
+    globalData = global || {}
     return function (target: IAppConstructor) {
-        if (getApp()) {
-            throw new Error('不能注册多个app')
-        }
-        const param = new target()
-        globalData = param.global
-        App(trim(param))
+        App(trim(new target()))
     }
 }
 export class IPage<D={}>{
@@ -87,11 +85,14 @@ export function widget(inital?: InitalData) {
         if (inital) {
             const data = result.data
             if (data) {
-                Object.assign(data, inital)
+                Object.assign(inital, data)
             } else {
                 Object.assign(result, { data: inital })
             }
         }
+        const global = globalData ? { ...globalData } : {}
+        Object.assign(global, inital, result.data)
+        Object.assign(result, { data: global })
         Component(result)
     }
 }

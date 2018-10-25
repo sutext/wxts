@@ -27,14 +27,16 @@ var IApp = /** @class */ (function () {
 }());
 exports.IApp = IApp;
 var globalData;
-function app() {
+/**
+ * @description global data 会被注入到每个页面中去，如果页面提供了相同的变量 将会覆盖 global 里面的值
+ */
+function app(global) {
+    if (globalData) {
+        return;
+    }
+    globalData = global || {};
     return function (target) {
-        if (getApp()) {
-            throw new Error('不能注册多个app');
-        }
-        var param = new target();
-        globalData = param.global;
-        App(trim(param));
+        App(trim(new target()));
     };
 }
 exports.app = app;
@@ -82,12 +84,15 @@ function widget(inital) {
         if (inital) {
             var data = result.data;
             if (data) {
-                Object.assign(data, inital);
+                Object.assign(inital, data);
             }
             else {
                 Object.assign(result, { data: inital });
             }
         }
+        var global = globalData ? __assign({}, globalData) : {};
+        Object.assign(global, inital, result.data);
+        Object.assign(result, { data: global });
         Component(result);
     };
 }
