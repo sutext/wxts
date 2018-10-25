@@ -109,6 +109,11 @@ export declare class Socket {
      */
     protected maxAttemptTimes: number;
     /**
+     * @default 30
+     * @description the heartbeat interal
+     */
+    protected heartbeatInterval: number;
+    /**
      * subclass must impl this method to resolve url
      * you must provide connect url
      */
@@ -138,10 +143,10 @@ export declare class Socket {
     protected didLogout(res: wts.SocketCloser): void;
     /** call when some error opend */
     protected didError(error: Error): void;
-    start: () => void;
-    stop: () => void;
     readonly isConnected: boolean;
     readonly isConnecting: boolean;
+    start: () => void;
+    stop: () => void;
     addListener: (listener: Listener) => void;
     removeListener: (listener: Listener) => void;
 }

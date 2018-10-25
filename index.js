@@ -423,13 +423,18 @@ var Socket = /** @class */ (function () {
          * @description the max attempt times
          */
         this.maxAttemptTimes = 10;
+        /**
+         * @default 30
+         * @description the heartbeat interal
+         */
+        this.heartbeatInterval = 30;
         this.start = function () {
             if (_this.timer) {
                 return;
             }
             _this.timer = setInterval(function () {
                 _this.timerFunc();
-            }, 1000 * 30);
+            }, 1000 * _this.heartbeatInterval);
             _this.attemptTimes = 0;
             _this.timerFunc();
         };

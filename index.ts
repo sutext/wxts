@@ -407,6 +407,11 @@ export class Socket {
      */
     protected maxAttemptTimes: number = 10
     /**
+     * @default 30
+     * @description the heartbeat interal
+     */
+    protected heartbeatInterval: number = 30
+    /**
      * subclass must impl this method to resolve url
      * you must provide connect url 
      */
@@ -452,13 +457,19 @@ export class Socket {
     protected didError(error: Error) {
 
     }
+    public get isConnected(): boolean {
+        return this._isConnected
+    }
+    public get isConnecting(): boolean {
+        return this._isConnecting
+    }
     public start = () => {
         if (this.timer) {
             return;
         }
         this.timer = setInterval(() => {
             this.timerFunc();
-        }, 1000 * 30);
+        }, 1000 * this.heartbeatInterval);
         this.attemptTimes = 0
         this.timerFunc();
     }
@@ -469,12 +480,6 @@ export class Socket {
         clearInterval(this.timer)
         this.timer = null
         this.close()
-    }
-    public get isConnected(): boolean {
-        return this._isConnected
-    }
-    public get isConnecting(): boolean {
-        return this._isConnecting
     }
     public addListener = (listener: Listener) => {
         this.listeners.add(listener)
