@@ -530,53 +530,37 @@ var Socket = /** @class */ (function () {
     return Socket;
 }());
 exports.Socket = Socket;
-/**
- * @description local orm implements
- */
 var Storage = /** @class */ (function () {
     function Storage() {
     }
     Storage.prototype.save = function (model) {
-        if (!model) {
+        if (!model || model.isEmpty)
             return;
-        }
-        if (model.isEmpty) {
-            return;
-        }
-        var classKey = model.className;
-        var key = classKey + "." + model.id;
-        var keys = wx.getStorageSync(classKey);
-        if (!keys) {
-            keys = {};
-        }
-        keys[key] = null;
-        wx.setStorageSync(classKey, keys);
+        var key = model.className + "." + model.id;
+        var keys = wx.getStorageSync(model.className) || {};
+        keys.key = '';
+        wx.setStorageSync(model.className, keys);
         wx.setStorageSync(key, model);
     };
     Storage.prototype.find = function (c, id) {
-        if (!id) {
-            return;
-        }
-        var key = new c(null).className + "." + id;
-        var obj = wx.getStorageSync(key);
-        if (obj) {
-            return new c(obj);
-        }
-        return null;
+        var classkey = new c().className;
+        if (!(id && classkey))
+            return null;
+        var obj = wx.getStorageSync(classkey + "." + id);
+        return obj ? new c(obj) : null;
     };
     Storage.prototype.all = function (c) {
-        var keyobj = wx.getStorageSync((new c(null).className));
-        var keys = Object.keys(keyobj);
-        if (!keys || keys.length == 0) {
+        var classkey = new c().className;
+        if (!classkey)
             return [];
-        }
+        var keys = wx.getStorageSync(classkey);
         var result = [];
-        keys.forEach(function (ele) {
-            var obj = wx.getStorageSync(ele);
+        for (var key in keys) {
+            var obj = wx.getStorageSync(key);
             if (obj) {
                 result.push(new c(obj));
             }
-        });
+        }
         return result;
     };
     return Storage;

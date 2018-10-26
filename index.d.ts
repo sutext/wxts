@@ -150,19 +150,15 @@ export declare class Socket {
     addListener: (listener: Listener) => void;
     removeListener: (listener: Listener) => void;
 }
-/**
- * @description local orm implements
- */
-declare class Storage {
-    save<T extends StorageAble>(model: T): void;
-    find<T extends StorageAble>(c: new (json: any) => T, id: string | number): T;
-    all<T extends StorageAble>(c: new (json: any) => T): T[];
-}
 export interface StorageAble {
-    /** must provide major key for orm find */
     id: string | number;
     isEmpty: boolean;
     className: string;
+}
+declare class Storage {
+    save<T extends StorageAble>(model: T): void;
+    find<T extends StorageAble>(c: new (json?: any) => T, id: string | number): T | undefined;
+    all<T extends StorageAble>(c: new (json?: any) => T): T[];
 }
 export declare const storage: Storage;
 export {};

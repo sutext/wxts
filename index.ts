@@ -488,58 +488,38 @@ export class Socket {
         this.listeners.delete(listener);
     }
 }
-/**
- * @description local orm implements
- */
-class Storage {
-    save<T extends StorageAble>(model: T) {
-        if (!model) {
-            return;
-        }
-        if (model.isEmpty) {
-            return;
-        }
-        let classKey = model.className
-        let key = classKey + "." + model.id
-        let keys: any = wx.getStorageSync(classKey)
-        if (!keys) {
-            keys = {}
-        }
-        keys[key] = null
-        wx.setStorageSync(classKey, keys)
-        wx.setStorageSync(key, model)
-    }
-    find<T extends StorageAble>(c: new (json: any) => T, id: string | number): T {
-        if (!id) {
-            return
-        }
-        let key = new c(null).className + "." + id
-        let obj = wx.getStorageSync(key)
-        if (obj) {
-            return new c(obj);
-        }
-        return null
-    }
-    all<T extends StorageAble>(c: new (json: any) => T): T[] {
-        let keyobj: any = wx.getStorageSync((new c(null).className))
-        let keys = Object.keys(keyobj)
-        if (!keys || keys.length == 0) {
-            return [];
-        }
-        let result: T[] = []
-        keys.forEach(ele => {
-            let obj = wx.getStorageSync(ele)
-            if (obj) {
-                result.push(new c(obj))
-            }
-        })
-        return result;
-    }
-}
 export interface StorageAble {
-    /** must provide major key for orm find */
     id: string | number
     isEmpty: boolean
     className: string
+}
+class Storage {
+    save<T extends StorageAble>(model: T): void {
+        if (!model || model.isEmpty) return;
+        const key = model.className + "." + model.id
+        const keys: any = wx.getStorageSync(model.className) || {}
+        keys.key = ''
+        wx.setStorageSync(model.className, keys)
+        wx.setStorageSync(key, model)
+    }
+    find<T extends StorageAble>(c: new (json?: any) => T, id: string | number): T | undefined {
+        const classkey = new c().className
+        if (!(id && classkey)) return null;
+        const obj = wx.getStorageSync(classkey + "." + id)
+        return obj ? new c(obj) : null
+    }
+    all<T extends StorageAble>(c: new (json?: any) => T): T[] {
+        const classkey = new c().className
+        if (!classkey) return []
+        const keys = wx.getStorageSync(classkey)
+        const result: T[] = []
+        for (const key in keys) {
+            let obj = wx.getStorageSync(key)
+            if (obj) {
+                result.push(new c(obj))
+            }
+        }
+        return result;
+    }
 }
 export const storage = new Storage()
