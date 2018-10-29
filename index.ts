@@ -29,15 +29,15 @@ export function app(global?: InitalData) {
         App(trim(new target()))
     }
 }
-export class IPage<D={}>{
+export class IPage<D=any>{
     [other: string]: any
     public readonly options: any
     public readonly route: string
     public readonly data: D & InitalData
     public setData: <K extends keyof D>(data: (Pick<D, K> | D), callback?: () => void) => void;
+    public triggerEvent: (name: string, detail?: any) => void
     public selectComponent: (selector: string) => Widget
     public selectAllComponents: () => Widget[]
-    public triggerEvent: (name: string, detail?: any) => void
     public createSelectorQuery: () => wts.SelectorQuery
     public getRelationNodes: () => wts.NodesRef
     public createIntersectionObserver: (options: wts.IntersectionOptions) => wts.IntersectionObserver
@@ -56,13 +56,14 @@ export function page(inital?: InitalData) {
 }
 export class Widget<D=any>{
     [other: string]: any
-    public readonly options: any
     public readonly data: D & InitalData
     public setData: <K extends keyof D>(data: (Pick<D, K> | D), callback?: () => void) => void;
+    public triggerEvent: (name: string, detail?: any) => void
     public selectComponent: (selector: string) => Widget
     public selectAllComponents: () => Widget[]
-    public triggerEvent: (name: string, detail?: any) => void
     public createSelectorQuery: () => wts.SelectorQuery;
+    public getRelationNodes: () => wts.NodesRef
+    public createIntersectionObserver: (options: wts.IntersectionOptions) => wts.IntersectionObserver
 }
 export interface WidgetConstructor {
     new(): Widget

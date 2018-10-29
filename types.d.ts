@@ -65,14 +65,12 @@ declare namespace wts {
     }
     /**指定组件的生命周期函数 时间处理函数及方法等  */
     interface IComponent {
+        /**组件渲染数据 */
         data?: any
-        /**组件的对外属性 是属性名到属性设置的映射表
-         * 属性设置中可包含三个字段
-         * type 表示属性类型
-         * value 表示属性初始值
-         * observer 表示属性值被更改时的响应函数
-         */
-        properties?: any
+        /**组件配置参数 */
+        options?: ComponentOptions
+        /** 描述组件 传入参数 */
+        properties?: ComponentProperties
         /**类似于mixins和traits的组件间代码复用机制 */
         behaviors?: any[]
         /**组件生命周期函数 在组件实例进入页面节点树时执行 注意此时不能调用 setData */
@@ -88,7 +86,7 @@ declare namespace wts {
         /**组件间关系定义 */
         relations?: any
         /**组件接受的外部样式类 */
-        externalClasses?: Array<string>
+        externalClasses?: string[]
         /**组件方法列表 */
         methods?: any
     }
@@ -504,7 +502,20 @@ declare namespace wts {
          */
         getUpdateManager(): UpdateManager;
     }
-
+    interface ComponentOptions {
+        addGlobalClass?: boolean,
+        multipleSlots?: boolean
+    }
+    type ComponentType = StringConstructor | NumberConstructor | BooleanConstructor | ObjectConstructor | ArrayConstructor | null
+    /** Function must be String, Number, Boolean, Object, Array, null */
+    interface ComponentProperties {
+        [key: string]: ComponentType | ComponentProperty
+    }
+    interface ComponentProperty {
+        type: ComponentType,
+        value?: any,
+        observer?: string
+    }
     interface Callback {
         /**接口调用成功的回调函数 */
         success?: (res?: any) => void;
