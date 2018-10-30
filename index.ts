@@ -40,7 +40,7 @@ export class IPage<D=any>{
     public selectAllComponents: () => Widget[]
     public createSelectorQuery: () => wts.SelectorQuery
     public getRelationNodes: () => wts.NodesRef
-    public createIntersectionObserver: (options: wts.IntersectionOptions) => wts.IntersectionObserver
+    public createIntersectionObserver: (options?: wts.IntersectionOptions) => wts.IntersectionObserver
 }
 export interface IPageConstructor {
     new(): IPage
@@ -63,7 +63,7 @@ export class Widget<D=any>{
     public selectAllComponents: () => Widget[]
     public createSelectorQuery: () => wts.SelectorQuery;
     public getRelationNodes: () => wts.NodesRef
-    public createIntersectionObserver: (options: wts.IntersectionOptions) => wts.IntersectionObserver
+    public createIntersectionObserver: (options?: wts.IntersectionOptions) => wts.IntersectionObserver
 }
 export interface WidgetConstructor {
     new(): Widget

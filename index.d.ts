@@ -11,18 +11,18 @@ export interface IAppConstructor {
  * @description global data 会被注入到每个页面中去，如果页面提供了相同的变量 将会覆盖 global 里面的值
  */
 export declare function app(global?: InitalData): (target: IAppConstructor) => void;
-export declare class IPage<D = {}> {
+export declare class IPage<D = any> {
     [other: string]: any;
     readonly options: any;
     readonly route: string;
     readonly data: D & InitalData;
     setData: <K extends keyof D>(data: (Pick<D, K> | D), callback?: () => void) => void;
+    triggerEvent: (name: string, detail?: any) => void;
     selectComponent: (selector: string) => Widget;
     selectAllComponents: () => Widget[];
-    triggerEvent: (name: string, detail?: any) => void;
     createSelectorQuery: () => wts.SelectorQuery;
     getRelationNodes: () => wts.NodesRef;
-    createIntersectionObserver: (options: wts.IntersectionOptions) => wts.IntersectionObserver;
+    createIntersectionObserver: (options?: wts.IntersectionOptions) => wts.IntersectionObserver;
 }
 export interface IPageConstructor {
     new (): IPage;
@@ -30,13 +30,14 @@ export interface IPageConstructor {
 export declare function page(inital?: InitalData): (target: IPageConstructor) => void;
 export declare class Widget<D = any> {
     [other: string]: any;
-    readonly options: any;
     readonly data: D & InitalData;
     setData: <K extends keyof D>(data: (Pick<D, K> | D), callback?: () => void) => void;
+    triggerEvent: (name: string, detail?: any) => void;
     selectComponent: (selector: string) => Widget;
     selectAllComponents: () => Widget[];
-    triggerEvent: (name: string, detail?: any) => void;
     createSelectorQuery: () => wts.SelectorQuery;
+    getRelationNodes: () => wts.NodesRef;
+    createIntersectionObserver: (options?: wts.IntersectionOptions) => wts.IntersectionObserver;
 }
 export interface WidgetConstructor {
     new (): Widget;
