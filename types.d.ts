@@ -2128,13 +2128,17 @@ declare namespace wts {
         top: number
         bottom: number
     }
-    interface IntersectionCallback {
-        (intersectionRatio: number, intersectionRect: ClientRect, boundingClientRect: ClientRect, relativeRect: ClientRect, time: number): void
+    interface IntersectionInfo {
+        time: number
+        relativeRect: ClientRect
+        intersectionRect: ClientRect
+        intersectionRatio: number
+        boundingClientRect: ClientRect
     }
     interface IntersectionObserver {
         relativeTo: (selector: string, margins?: Partial<IntersectionMargins>, ) => IntersectionObserver
         relativeToViewport: (margins?: Partial<IntersectionMargins>, ) => IntersectionObserver
-        observe: (selector: string, callback?: IntersectionCallback) => void
+        observe: (selector: string, callback?: (res: IntersectionInfo) => void) => void
         disconnect: () => void
     }
     interface UpdateManager {
