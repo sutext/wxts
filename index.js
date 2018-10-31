@@ -32,7 +32,7 @@ var globalData;
  */
 function app(global) {
     if (globalData) {
-        return;
+        throw new Error('you can only register one app!!!!');
     }
     globalData = global || {};
     return function (target) {
@@ -493,7 +493,7 @@ var Socket = /** @class */ (function () {
     });
     /**
      * @default impl is return res.code === 4001 || res.code === 4002,4001,4002 is the default auth fail code
-     * @description if true socket will no more attemp adn didLogout will be call!
+     * @description If get true socket will not attempt again. At this time didLogout will be call!
      */
     Socket.prototype.isAuthClose = function (res) {
         return res.code === 4001 || res.code === 4002;

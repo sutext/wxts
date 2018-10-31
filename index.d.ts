@@ -4,13 +4,10 @@ interface InitalData {
 export declare class IApp {
     [other: string]: any;
 }
-export interface IAppConstructor {
-    new (): IApp;
-}
 /**
  * @description global data 会被注入到每个页面中去，如果页面提供了相同的变量 将会覆盖 global 里面的值
  */
-export declare function app(global?: InitalData): (target: IAppConstructor) => void;
+export declare function app(global?: InitalData): (target: new () => IApp) => void;
 export declare class IPage<D = any> {
     [other: string]: any;
     readonly options: any;
@@ -24,10 +21,7 @@ export declare class IPage<D = any> {
     getRelationNodes: () => wts.NodesRef;
     createIntersectionObserver: (options?: wts.IntersectionOptions) => wts.IntersectionObserver;
 }
-export interface IPageConstructor {
-    new (): IPage;
-}
-export declare function page(inital?: InitalData): (target: IPageConstructor) => void;
+export declare function page(inital?: InitalData): (target: new () => IPage<any>) => void;
 export declare class Widget<D = any> {
     [other: string]: any;
     readonly data: D & InitalData;
@@ -39,10 +33,7 @@ export declare class Widget<D = any> {
     getRelationNodes: () => wts.NodesRef;
     createIntersectionObserver: (options?: wts.IntersectionOptions) => wts.IntersectionObserver;
 }
-export interface WidgetConstructor {
-    new (): Widget;
-}
-export declare function widget(inital?: InitalData): (target: WidgetConstructor) => void;
+export declare function widget(inital?: InitalData): (target: new () => Widget<any>) => void;
 export interface ImageFile {
     path: string;
     name: string;
@@ -130,7 +121,7 @@ export declare class Socket {
     protected readonly isDebug: boolean;
     /**
      * @default impl is return res.code === 4001 || res.code === 4002,4001,4002 is the default auth fail code
-     * @description if true socket will no more attemp adn didLogout will be call!
+     * @description If get true socket will not attempt again. At this time didLogout will be call!
      */
     protected isAuthClose(res: wts.SocketCloser): boolean;
     /** the staus observe . It will be call when socket never attemped */

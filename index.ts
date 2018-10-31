@@ -13,19 +13,16 @@ interface InitalData {
 export class IApp {
     [other: string]: any
 }
-export interface IAppConstructor {
-    new(): IApp
-}
 let globalData: InitalData
 /**
  * @description global data 会被注入到每个页面中去，如果页面提供了相同的变量 将会覆盖 global 里面的值
  */
 export function app(global?: InitalData) {
     if (globalData) {
-        return
+        throw new Error('you can only register one app!!!!')
     }
     globalData = global || {}
-    return function (target: IAppConstructor) {
+    return function (target: new () => IApp) {
         App(trim(new target()))
     }
 }
@@ -42,11 +39,8 @@ export class IPage<D=any>{
     public getRelationNodes: () => wts.NodesRef
     public createIntersectionObserver: (options?: wts.IntersectionOptions) => wts.IntersectionObserver
 }
-export interface IPageConstructor {
-    new(): IPage
-}
 export function page(inital?: InitalData) {
-    return function (target: IPageConstructor) {
+    return function (target: new () => IPage) {
         const param = new target()
         const global = globalData ? { ...globalData } : {}
         Object.assign(global, inital, param.data)
@@ -65,12 +59,9 @@ export class Widget<D=any>{
     public getRelationNodes: () => wts.NodesRef
     public createIntersectionObserver: (options?: wts.IntersectionOptions) => wts.IntersectionObserver
 }
-export interface WidgetConstructor {
-    new(): Widget
-}
 const keys = ['properties', 'data', 'behaviors', 'created', 'attached', 'ready', 'moved', 'detached', 'relations', 'externalClasses']
 export function widget(inital?: InitalData) {
-    return function (target: WidgetConstructor) {
+    return function (target: new () => Widget) {
         const param = new target()
         const result: any = { methods: {} }
         for (const key in param) {
@@ -434,7 +425,7 @@ export class Socket {
     }
     /** 
      * @default impl is return res.code === 4001 || res.code === 4002,4001,4002 is the default auth fail code 
-     * @description if true socket will no more attemp adn didLogout will be call!
+     * @description If get true socket will not attempt again. At this time didLogout will be call!
      */
     protected isAuthClose(res: wts.SocketCloser): boolean {
         return res.code === 4001 || res.code === 4002

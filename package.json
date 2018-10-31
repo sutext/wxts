@@ -1,36 +1,36 @@
 {
-  "name": "wxts",
-  "version": "0.1.10",
-  "description": "wexin typescript suport!",
-  "main": "index.js",
-  "files": [
-    "index.js",
-    "index.d.ts",
-    "types.d.ts",
-    "install.js"
-  ],
-  "scripts": {
-    "install": "node install.js",
-    "start": "tsc"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+ssh://git@github.com/sutext/wxts.git"
-  },
-  "keywords": [
-    "微信",
-    "小程序",
-    "weixin",
-    "miniprogram",
-    "typescript"
-  ],
-  "author": "supertext",
-  "license": "ISC",
-  "bugs": {
-    "url": "https://github.com/sutext/wxts/issues"
-  },
-  "homepage": "https://github.com/sutext/wxts#readme",
-  "devDependencies": {
-    "typescript": "^3.1.3"
-  }
+    "name": "wxts",
+    "version": "0.1.11",
+    "description": "wexin typescript suport!",
+    "main": "index.js",
+    "files": [
+        "index.js",
+        "index.d.ts",
+        "types.d.ts",
+        "install.js"
+    ],
+    "scripts": {
+        "install": "node install.js",
+        "start": "tsc"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+ssh://git@github.com/sutext/wxts.git"
+    },
+    "keywords": [
+        "微信",
+        "小程序",
+        "weixin",
+        "miniprogram",
+        "typescript"
+    ],
+    "author": "supertext",
+    "license": "ISC",
+    "bugs": {
+        "url": "https://github.com/sutext/wxts/issues"
+    },
+    "homepage": "https://github.com/sutext/wxts#readme",
+    "devDependencies": {
+        "typescript": "^3.1.3"
+    }
 }
