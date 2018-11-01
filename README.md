@@ -21,7 +21,7 @@ Then open the wechat developer tools from build dir.
 
 ## example
 
-Ror src/app.ts :
+For src/app.ts :
 ```ts
 import { app, IApp} from 'wxts'
 const env = wx.getSystemInfoSync()

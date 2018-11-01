@@ -17,8 +17,8 @@ export declare class IPage<D = any> {
     readonly data: D & InitalData;
     setData: <K extends keyof D>(data: (Pick<D, K> | D), callback?: () => void) => void;
     triggerEvent: (name: string, detail?: any) => void;
-    selectComponent: (selector: string) => Widget;
-    selectAllComponents: () => Widget[];
+    selectComponent: (selector: string) => any;
+    selectAllComponents: () => any[];
     createSelectorQuery: () => wts.SelectorQuery;
     getRelationNodes: () => wts.NodesRef;
     createIntersectionObserver: (options?: wts.IntersectionOptions) => wts.IntersectionObserver;
@@ -34,8 +34,8 @@ export declare class Widget<D = any> {
     readonly data: D & InitalData;
     setData: <K extends keyof D>(data: (Pick<D, K> | D), callback?: () => void) => void;
     triggerEvent: (name: string, detail?: any) => void;
-    selectComponent: (selector: string) => Widget;
-    selectAllComponents: () => Widget[];
+    selectComponent: (selector: string) => any;
+    selectAllComponents: () => any[];
     createSelectorQuery: () => wts.SelectorQuery;
     getRelationNodes: () => wts.NodesRef;
     createIntersectionObserver: (options?: wts.IntersectionOptions) => wts.IntersectionObserver;
