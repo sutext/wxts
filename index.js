@@ -28,7 +28,9 @@ var IApp = /** @class */ (function () {
 exports.IApp = IApp;
 var globalData;
 /**
- * @description global data 会被注入到每个页面中去，如果页面提供了相同的变量 将会覆盖 global 里面的值
+ * @default {}
+ * @description global data will be inject to every Ipage.
+ * @description if local Ipage provide the same variable it will overwrite
  */
 function app(global) {
     if (globalData) {
@@ -46,6 +48,11 @@ var IPage = /** @class */ (function () {
     return IPage;
 }());
 exports.IPage = IPage;
+/**
+ * @default undefined
+ * @description inject inital data to the Ipage'data field.
+ * @description it will overwrite global data if possible
+ */
 function page(inital) {
     return function (target) {
         var param = new target();
@@ -63,6 +70,10 @@ var Widget = /** @class */ (function () {
 }());
 exports.Widget = Widget;
 var keys = ['properties', 'data', 'behaviors', 'created', 'attached', 'ready', 'moved', 'detached', 'relations', 'externalClasses'];
+/**
+ * @default undefined
+ * @description inject inital data to the Commponent data field.
+ */
 function widget(inital) {
     return function (target) {
         var param = new target();
@@ -329,7 +340,7 @@ var Socket = /** @class */ (function () {
                         _this.log(error);
                     }
                 }
-                _this.log('收到服务器内容：', res);
+                _this.log('收到WebSocket消息：', res);
             });
             _this.task.onClose(function (res) {
                 _this.log('WebSocket 已关闭！', res);

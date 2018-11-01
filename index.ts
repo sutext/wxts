@@ -15,7 +15,9 @@ export class IApp {
 }
 let globalData: InitalData
 /**
- * @description global data 会被注入到每个页面中去，如果页面提供了相同的变量 将会覆盖 global 里面的值
+ * @default {}
+ * @description global data will be inject to every Ipage.
+ * @description if local Ipage provide the same variable it will overwrite
  */
 export function app(global?: InitalData) {
     if (globalData) {
@@ -39,6 +41,11 @@ export class IPage<D=any>{
     public getRelationNodes: () => wts.NodesRef
     public createIntersectionObserver: (options?: wts.IntersectionOptions) => wts.IntersectionObserver
 }
+/**
+ * @default undefined
+ * @description inject inital data to the Ipage'data field.
+ * @description it will overwrite global data if possible
+ */
 export function page(inital?: InitalData) {
     return function (target: new () => IPage) {
         const param = new target()
@@ -60,6 +67,10 @@ export class Widget<D=any>{
     public createIntersectionObserver: (options?: wts.IntersectionOptions) => wts.IntersectionObserver
 }
 const keys = ['properties', 'data', 'behaviors', 'created', 'attached', 'ready', 'moved', 'detached', 'relations', 'externalClasses']
+/**
+ * @default undefined
+ * @description inject inital data to the Commponent data field.
+ */
 export function widget(inital?: InitalData) {
     return function (target: new () => Widget) {
         const param = new target()
@@ -296,7 +307,7 @@ export class Socket {
                     this.log(error)
                 }
             }
-            this.log('收到服务器内容：', res);
+            this.log('收到WebSocket消息：', res);
         })
         this.task.onClose(res => {
             this.log('WebSocket 已关闭！', res);

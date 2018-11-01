@@ -5,7 +5,9 @@ export declare class IApp {
     [other: string]: any;
 }
 /**
- * @description global data 会被注入到每个页面中去，如果页面提供了相同的变量 将会覆盖 global 里面的值
+ * @default {}
+ * @description global data will be inject to every Ipage.
+ * @description if local Ipage provide the same variable it will overwrite
  */
 export declare function app(global?: InitalData): (target: new () => IApp) => void;
 export declare class IPage<D = any> {
@@ -21,6 +23,11 @@ export declare class IPage<D = any> {
     getRelationNodes: () => wts.NodesRef;
     createIntersectionObserver: (options?: wts.IntersectionOptions) => wts.IntersectionObserver;
 }
+/**
+ * @default undefined
+ * @description inject inital data to the Ipage'data field.
+ * @description it will overwrite global data if possible
+ */
 export declare function page(inital?: InitalData): (target: new () => IPage<any>) => void;
 export declare class Widget<D = any> {
     [other: string]: any;
@@ -33,6 +40,10 @@ export declare class Widget<D = any> {
     getRelationNodes: () => wts.NodesRef;
     createIntersectionObserver: (options?: wts.IntersectionOptions) => wts.IntersectionObserver;
 }
+/**
+ * @default undefined
+ * @description inject inital data to the Commponent data field.
+ */
 export declare function widget(inital?: InitalData): (target: new () => Widget<any>) => void;
 export interface ImageFile {
     path: string;

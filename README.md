@@ -1,6 +1,27 @@
 # 纯 typescript 风格的小程序开发基础库
-# IPage 和 Widget 内 不能实用箭头函数 否则 this 将无法指向正确的对象
-# src/app.ts
+
+## notice
+IPage和Widget内 不能使用箭头函数 否则 this 将无法指向正确的对象
+Must add experimentalDecorators = true to tsconfig.json compilerOptions
+
+## Installing
+
+For the latest stable version:
+
+```bash
+npm install -g wxts-cli
+```
+## start
+```bash
+wxts new myapp
+cd myapp
+npm start
+```
+Then open the wechat developer tools from build dir.
+
+## example
+
+Ror src/app.ts :
 ```ts
 import { app, IApp} from 'wxts'
 const env = wx.getSystemInfoSync()
@@ -11,11 +32,10 @@ export default class Application extends IApp implements wts.IApp {
   onShow() {
   }
   onHide() {
-    socket.stop()
   }
 }
 ```
-# src/widgets/hello/index.ts
+For src/widgets/hello/index.ts :
 ```ts
 import { widget, Widget} from 'wxts'
 @widget({title:'hello widget'})
@@ -25,11 +45,11 @@ export default class Index extends Widget implements wts.IComponent{
     }
 }
 ```
-# src/widgets/hello/index.wxml
+For src/widgets/hello/index.wxml
 ```xml
-<view>{{title}</view>
+<view>{{title}}</view>
 ```
-# src/pages/index/index.ts
+For src/pages/index/index.ts : 
 ```ts
 import { page, IPage} from 'wxts'
 import Hello from '../../widgets/hello/index'
@@ -45,15 +65,15 @@ export default class Index extends IPage implements wts.IPage{
     }
 }
 ```
-# src/pages/index/index.wxml
+For src/pages/index/index.wxml :
 ```xml
 <view style="display:flex;flex-direction: column;">
     <hello id="hello"/>
-    <view wx:for="{{items}">{{item.title}}:{{env[itme.key]}}</view>
+    <view wx:for="{{items}}">{{item.title}}:{{env[itme.key]}}</view>
     <button bind:tap="sayWorld">say world</button>
 </view>
 ```
-# src/pages/index/index.json
+For src/pages/index/index.json :
 ```json
 {
     "usingComponents": {
