@@ -33,13 +33,13 @@ export class IPage<D=any>{
     public readonly options: any
     public readonly route: string
     public readonly data: D & InitalData
-    public setData: <K extends keyof D>(data: (Pick<D, K> | D), callback?: () => void) => void;
-    public triggerEvent: (name: string, detail?: any) => void
-    public selectComponent: (selector: string) => any
-    public selectAllComponents: () => any[]
-    public createSelectorQuery: () => wts.SelectorQuery
-    public getRelationNodes: () => wts.NodesRef
-    public createIntersectionObserver: (options?: wts.IntersectionOptions) => wts.IntersectionObserver
+    public readonly setData: <K extends keyof D>(data: (Pick<D, K> | D), callback?: () => void) => void;
+    public readonly triggerEvent: (name: string, detail?: any) => void
+    public readonly selectComponent: (selector: string) => any
+    public readonly selectAllComponents: () => any[]
+    public readonly createSelectorQuery: () => wts.SelectorQuery
+    public readonly getRelationNodes: () => wts.NodesRef
+    public readonly createIntersectionObserver: (options?: wts.IntersectionOptions) => wts.IntersectionObserver
 }
 /**
  * @default undefined
@@ -49,8 +49,8 @@ export class IPage<D=any>{
 export function page(inital?: InitalData) {
     return function (target: new () => IPage) {
         const param = new target()
-        const global = globalData ? { ...globalData } : {}
-        Object.assign(global, inital, param.data)
+        const global = {}
+        Object.assign(global, globalData, inital, param.data)
         Object.assign(param, { data: global })
         Page(trim(param))
     }
@@ -58,13 +58,13 @@ export function page(inital?: InitalData) {
 export class Widget<D=any>{
     [other: string]: any
     public readonly data: D & InitalData
-    public setData: <K extends keyof D>(data: (Pick<D, K> | D), callback?: () => void) => void;
-    public triggerEvent: (name: string, detail?: any) => void
-    public selectComponent: (selector: string) => any
-    public selectAllComponents: () => any[]
-    public createSelectorQuery: () => wts.SelectorQuery;
-    public getRelationNodes: () => wts.NodesRef
-    public createIntersectionObserver: (options?: wts.IntersectionOptions) => wts.IntersectionObserver
+    public readonly setData: <K extends keyof D>(data: (Pick<D, K> | D), callback?: () => void) => void;
+    public readonly triggerEvent: (name: string, detail?: any) => void
+    public readonly selectComponent: (selector: string) => any
+    public readonly selectAllComponents: () => any[]
+    public readonly createSelectorQuery: () => wts.SelectorQuery;
+    public readonly getRelationNodes: () => wts.NodesRef
+    public readonly createIntersectionObserver: (options?: wts.IntersectionOptions) => wts.IntersectionObserver
 }
 const keys = ['properties', 'data', 'behaviors', 'created', 'attached', 'ready', 'moved', 'detached', 'relations', 'externalClasses']
 /**
@@ -93,17 +93,17 @@ export function widget(inital?: InitalData) {
                 Object.assign(result, { data: inital })
             }
         }
-        const global = globalData ? { ...globalData } : {}
-        Object.assign(global, inital, result.data)
+        const global = {}
+        Object.assign(global, globalData, inital, result.data)
         Object.assign(result, { data: global })
         Component(result)
     }
 }
 
 export interface ImageFile {
-    path: string
-    name: string
-    file: string
+    readonly path: string
+    readonly name: string
+    readonly file: string
 }
 export class Network {
     /**
@@ -134,7 +134,7 @@ export class Network {
     protected resolve(resp: wts.HttpResponse): any {
         throw new Error('Network.resolve must be implement')
     }
-    public upload(file: ImageFile, loading?: boolean): Promise<string> {
+    public readonly upload = (file: ImageFile, loading?: boolean): Promise<string> => {
         wx.showNavigationBarLoading()
         if (loading) pop.waiting()
         return new Promise((resolve, reject) => {
@@ -157,7 +157,7 @@ export class Network {
             })
         })
     }
-    public anytask(path: string, data?: any, loading?: boolean): Promise<any> {
+    public readonly anytask = (path: string, data?: any, loading?: boolean): Promise<any> => {
         wx.showNavigationBarLoading()
         if (loading) pop.waiting()
         return new Promise((resolve, reject) => {
@@ -182,7 +182,7 @@ export class Network {
             })
         });
     }
-    public objtask<T>(c: new (json: any) => T, path: string, data?: any, loading?: boolean): Promise<T> {
+    public readonly objtask = <T>(c: new (json: any) => T, path: string, data?: any, loading?: boolean): Promise<T> => {
         wx.showNavigationBarLoading()
         if (loading) pop.waiting()
         return new Promise((resolve, reject) => {
@@ -207,7 +207,7 @@ export class Network {
             })
         });
     }
-    public arytask<T>(c: new (json: any) => T, path: string, data?: any, loading?: boolean): Promise<T[]> {
+    public readonly arytask = <T>(c: new (json: any) => T, path: string, data?: any, loading?: boolean): Promise<T[]> => {
         wx.showNavigationBarLoading()
         if (loading) pop.waiting()
         return new Promise((resolve, reject) => {
@@ -235,10 +235,10 @@ export class Network {
     }
 }
 class Popver {
-    public alert(content: string, confirm?: () => void) {
+    public readonly alert = (content: string, confirm?: () => void) => {
         wx.showModal({ title: "提示", content: content, showCancel: false, success: confirm })
     }
-    public dialog(content: string, confirm?: () => void, cancel?: () => void) {
+    public readonly dialog = (content: string, confirm?: () => void, cancel?: () => void) => {
         wx.showModal({
             title: "提示", content: content, showCancel: true, success: res => {
                 if (res.confirm && confirm) {
@@ -249,7 +249,7 @@ class Popver {
             }
         })
     }
-    public remind(ok: string, dismiss?: () => void) {
+    public readonly remind = (ok: string, dismiss?: () => void) => {
         wx.showToast({ title: ok, icon: "success", duration: 1000, mask: true })
         setTimeout(() => {
             if (dismiss) {
@@ -257,17 +257,17 @@ class Popver {
             }
         }, 1000);
     }
-    public error(err: Error) {
+    public readonly error = (err: Error) => {
         let msg = err.message
         if (!msg) {
             msg = "服务异常"
         }
         wx.showModal({ title: "提示", content: msg, showCancel: false })
     }
-    public waiting(title?: string) {
+    public readonly waiting = (title?: string) => {
         wx.showLoading({ title: title || '加载中', mask: true })
     }
-    public idling() {
+    public readonly idling = () => {
         wx.hideLoading()
     }
 }
@@ -466,7 +466,7 @@ export class Socket {
     public get isConnecting(): boolean {
         return this._isConnecting
     }
-    public start = () => {
+    public readonly start = () => {
         if (this.timer) {
             return;
         }
@@ -476,7 +476,7 @@ export class Socket {
         this.attemptTimes = 0
         this.timerFunc();
     }
-    public stop = () => {
+    public readonly stop = () => {
         if (!this.timer) {
             return;
         }
@@ -484,10 +484,10 @@ export class Socket {
         this.timer = null
         this.close()
     }
-    public addListener = (listener: Listener) => {
+    public readonly addListener = (listener: Listener) => {
         this.listeners.add(listener)
     }
-    public removeListener = (listener: Listener) => {
+    public readonly removeListener = (listener: Listener) => {
         this.listeners.delete(listener);
     }
 }
@@ -497,7 +497,7 @@ export interface StorageAble {
     className: string
 }
 class Storage {
-    save<T extends StorageAble>(model: T): void {
+    public readonly save = <T extends StorageAble>(model: T) => {
         if (!model || model.isEmpty) return;
         const key = model.className + "." + model.id
         const keys: any = wx.getStorageSync(model.className) || {}
@@ -505,13 +505,13 @@ class Storage {
         wx.setStorageSync(model.className, keys)
         wx.setStorageSync(key, model)
     }
-    find<T extends StorageAble>(c: new (json?: any) => T, id: string | number): T | undefined {
+    public readonly find = <T extends StorageAble>(c: new (json?: any) => T, id: string | number): T | undefined => {
         const classkey = new c().className
         if (!(id && classkey)) return null;
         const obj = wx.getStorageSync(classkey + "." + id)
         return obj ? new c(obj) : null
     }
-    all<T extends StorageAble>(c: new (json?: any) => T): T[] {
+    public readonly all = <T extends StorageAble>(c: new (json?: any) => T): T[] => {
         const classkey = new c().className
         if (!classkey) return []
         const keys = wx.getStorageSync(classkey)

@@ -1,15 +1,4 @@
 "use strict";
-var __assign = (this && this.__assign) || function () {
-    __assign = Object.assign || function(t) {
-        for (var s, i = 1, n = arguments.length; i < n; i++) {
-            s = arguments[i];
-            for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p))
-                t[p] = s[p];
-        }
-        return t;
-    };
-    return __assign.apply(this, arguments);
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 function trim(obj) {
     var result = {};
@@ -56,8 +45,8 @@ exports.IPage = IPage;
 function page(inital) {
     return function (target) {
         var param = new target();
-        var global = globalData ? __assign({}, globalData) : {};
-        Object.assign(global, inital, param.data);
+        var global = {};
+        Object.assign(global, globalData, inital, param.data);
         Object.assign(param, { data: global });
         Page(trim(param));
     };
@@ -101,8 +90,8 @@ function widget(inital) {
                 Object.assign(result, { data: inital });
             }
         }
-        var global = globalData ? __assign({}, globalData) : {};
-        Object.assign(global, inital, result.data);
+        var global = {};
+        Object.assign(global, globalData, inital, result.data);
         Object.assign(result, { data: global });
         Component(result);
     };
@@ -110,6 +99,119 @@ function widget(inital) {
 exports.widget = widget;
 var Network = /** @class */ (function () {
     function Network() {
+        var _this = this;
+        this.upload = function (file, loading) {
+            wx.showNavigationBarLoading();
+            if (loading)
+                exports.pop.waiting();
+            return new Promise(function (resolve, reject) {
+                wx.uploadFile({
+                    name: file.name,
+                    header: _this.header,
+                    url: _this.url(file.path),
+                    filePath: file.file,
+                    complete: function (res) {
+                        wx.hideNavigationBarLoading();
+                        if (loading)
+                            exports.pop.idling();
+                        try {
+                            res.data = JSON.parse(res.data);
+                            var value = _this.resolve(res);
+                            resolve(value.key);
+                        }
+                        catch (error) {
+                            reject(error);
+                        }
+                    }
+                });
+            });
+        };
+        this.anytask = function (path, data, loading) {
+            wx.showNavigationBarLoading();
+            if (loading)
+                exports.pop.waiting();
+            return new Promise(function (resolve, reject) {
+                wx.request({
+                    url: _this.url(path),
+                    header: _this.header,
+                    data: data,
+                    method: _this.method,
+                    complete: function (result) {
+                        wx.hideNavigationBarLoading();
+                        if (loading)
+                            exports.pop.idling();
+                        try {
+                            var value = _this.resolve(result);
+                            if (value && result.header && result.header.Date) {
+                                value.timestamp = new Date(result.header.Date).getTime();
+                            }
+                            resolve(value);
+                        }
+                        catch (error) {
+                            reject(error);
+                        }
+                    }
+                });
+            });
+        };
+        this.objtask = function (c, path, data, loading) {
+            wx.showNavigationBarLoading();
+            if (loading)
+                exports.pop.waiting();
+            return new Promise(function (resolve, reject) {
+                wx.request({
+                    url: _this.url(path),
+                    header: _this.header,
+                    data: data,
+                    method: _this.method,
+                    complete: function (result) {
+                        wx.hideNavigationBarLoading();
+                        if (loading)
+                            exports.pop.idling();
+                        try {
+                            var value = _this.resolve(result);
+                            if (value && result.header && result.header.Date) {
+                                value.timestamp = new Date(result.header.Date).getTime();
+                            }
+                            resolve(new c(value));
+                        }
+                        catch (error) {
+                            reject(error);
+                        }
+                    }
+                });
+            });
+        };
+        this.arytask = function (c, path, data, loading) {
+            wx.showNavigationBarLoading();
+            if (loading)
+                exports.pop.waiting();
+            return new Promise(function (resolve, reject) {
+                wx.request({
+                    url: _this.url(path),
+                    header: _this.header,
+                    data: data,
+                    method: _this.method,
+                    complete: function (result) {
+                        wx.hideNavigationBarLoading();
+                        if (loading)
+                            exports.pop.idling();
+                        try {
+                            var value = _this.resolve(result);
+                            if (value && value.length > 0) {
+                                resolve(value.map(function (e) { return new c(e); }));
+                            }
+                            else {
+                                resolve([]);
+                            }
+                        }
+                        catch (error) {
+                            reject(error);
+                        }
+                    }
+                });
+            });
+        };
     }
     Object.defineProperty(Network.prototype, "method", {
         /**
@@ -147,164 +249,48 @@ var Network = /** @class */ (function () {
     Network.prototype.resolve = function (resp) {
         throw new Error('Network.resolve must be implement');
     };
-    Network.prototype.upload = function (file, loading) {
-        var _this = this;
-        wx.showNavigationBarLoading();
-        if (loading)
-            exports.pop.waiting();
-        return new Promise(function (resolve, reject) {
-            wx.uploadFile({
-                name: file.name,
-                header: _this.header,
-                url: _this.url(file.path),
-                filePath: file.file,
-                complete: function (res) {
-                    wx.hideNavigationBarLoading();
-                    if (loading)
-                        exports.pop.idling();
-                    try {
-                        res.data = JSON.parse(res.data);
-                        var value = _this.resolve(res);
-                        resolve(value.key);
-                    }
-                    catch (error) {
-                        reject(error);
-                    }
-                }
-            });
-        });
-    };
-    Network.prototype.anytask = function (path, data, loading) {
-        var _this = this;
-        wx.showNavigationBarLoading();
-        if (loading)
-            exports.pop.waiting();
-        return new Promise(function (resolve, reject) {
-            wx.request({
-                url: _this.url(path),
-                header: _this.header,
-                data: data,
-                method: _this.method,
-                complete: function (result) {
-                    wx.hideNavigationBarLoading();
-                    if (loading)
-                        exports.pop.idling();
-                    try {
-                        var value = _this.resolve(result);
-                        if (value && result.header && result.header.Date) {
-                            value.timestamp = new Date(result.header.Date).getTime();
-                        }
-                        resolve(value);
-                    }
-                    catch (error) {
-                        reject(error);
-                    }
-                }
-            });
-        });
-    };
-    Network.prototype.objtask = function (c, path, data, loading) {
-        var _this = this;
-        wx.showNavigationBarLoading();
-        if (loading)
-            exports.pop.waiting();
-        return new Promise(function (resolve, reject) {
-            wx.request({
-                url: _this.url(path),
-                header: _this.header,
-                data: data,
-                method: _this.method,
-                complete: function (result) {
-                    wx.hideNavigationBarLoading();
-                    if (loading)
-                        exports.pop.idling();
-                    try {
-                        var value = _this.resolve(result);
-                        if (value && result.header && result.header.Date) {
-                            value.timestamp = new Date(result.header.Date).getTime();
-                        }
-                        resolve(new c(value));
-                    }
-                    catch (error) {
-                        reject(error);
-                    }
-                }
-            });
-        });
-    };
-    Network.prototype.arytask = function (c, path, data, loading) {
-        var _this = this;
-        wx.showNavigationBarLoading();
-        if (loading)
-            exports.pop.waiting();
-        return new Promise(function (resolve, reject) {
-            wx.request({
-                url: _this.url(path),
-                header: _this.header,
-                data: data,
-                method: _this.method,
-                complete: function (result) {
-                    wx.hideNavigationBarLoading();
-                    if (loading)
-                        exports.pop.idling();
-                    try {
-                        var value = _this.resolve(result);
-                        if (value && value.length > 0) {
-                            resolve(value.map(function (e) { return new c(e); }));
-                        }
-                        else {
-                            resolve([]);
-                        }
-                    }
-                    catch (error) {
-                        reject(error);
-                    }
-                }
-            });
-        });
-    };
     return Network;
 }());
 exports.Network = Network;
 var Popver = /** @class */ (function () {
     function Popver() {
+        this.alert = function (content, confirm) {
+            wx.showModal({ title: "提示", content: content, showCancel: false, success: confirm });
+        };
+        this.dialog = function (content, confirm, cancel) {
+            wx.showModal({
+                title: "提示", content: content, showCancel: true, success: function (res) {
+                    if (res.confirm && confirm) {
+                        confirm();
+                    }
+                    else if (res.cancel && cancel) {
+                        cancel();
+                    }
+                }
+            });
+        };
+        this.remind = function (ok, dismiss) {
+            wx.showToast({ title: ok, icon: "success", duration: 1000, mask: true });
+            setTimeout(function () {
+                if (dismiss) {
+                    dismiss();
+                }
+            }, 1000);
+        };
+        this.error = function (err) {
+            var msg = err.message;
+            if (!msg) {
+                msg = "服务异常";
+            }
+            wx.showModal({ title: "提示", content: msg, showCancel: false });
+        };
+        this.waiting = function (title) {
+            wx.showLoading({ title: title || '加载中', mask: true });
+        };
+        this.idling = function () {
+            wx.hideLoading();
+        };
     }
-    Popver.prototype.alert = function (content, confirm) {
-        wx.showModal({ title: "提示", content: content, showCancel: false, success: confirm });
-    };
-    Popver.prototype.dialog = function (content, confirm, cancel) {
-        wx.showModal({
-            title: "提示", content: content, showCancel: true, success: function (res) {
-                if (res.confirm && confirm) {
-                    confirm();
-                }
-                else if (res.cancel && cancel) {
-                    cancel();
-                }
-            }
-        });
-    };
-    Popver.prototype.remind = function (ok, dismiss) {
-        wx.showToast({ title: ok, icon: "success", duration: 1000, mask: true });
-        setTimeout(function () {
-            if (dismiss) {
-                dismiss();
-            }
-        }, 1000);
-    };
-    Popver.prototype.error = function (err) {
-        var msg = err.message;
-        if (!msg) {
-            msg = "服务异常";
-        }
-        wx.showModal({ title: "提示", content: msg, showCancel: false });
-    };
-    Popver.prototype.waiting = function (title) {
-        wx.showLoading({ title: title || '加载中', mask: true });
-    };
-    Popver.prototype.idling = function () {
-        wx.hideLoading();
-    };
     return Popver;
 }());
 exports.pop = new Popver();

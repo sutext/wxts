@@ -15,13 +15,13 @@ export declare class IPage<D = any> {
     readonly options: any;
     readonly route: string;
     readonly data: D & InitalData;
-    setData: <K extends keyof D>(data: (Pick<D, K> | D), callback?: () => void) => void;
-    triggerEvent: (name: string, detail?: any) => void;
-    selectComponent: (selector: string) => any;
-    selectAllComponents: () => any[];
-    createSelectorQuery: () => wts.SelectorQuery;
-    getRelationNodes: () => wts.NodesRef;
-    createIntersectionObserver: (options?: wts.IntersectionOptions) => wts.IntersectionObserver;
+    readonly setData: <K extends keyof D>(data: (Pick<D, K> | D), callback?: () => void) => void;
+    readonly triggerEvent: (name: string, detail?: any) => void;
+    readonly selectComponent: (selector: string) => any;
+    readonly selectAllComponents: () => any[];
+    readonly createSelectorQuery: () => wts.SelectorQuery;
+    readonly getRelationNodes: () => wts.NodesRef;
+    readonly createIntersectionObserver: (options?: wts.IntersectionOptions) => wts.IntersectionObserver;
 }
 /**
  * @default undefined
@@ -32,13 +32,13 @@ export declare function page(inital?: InitalData): (target: new () => IPage<any>
 export declare class Widget<D = any> {
     [other: string]: any;
     readonly data: D & InitalData;
-    setData: <K extends keyof D>(data: (Pick<D, K> | D), callback?: () => void) => void;
-    triggerEvent: (name: string, detail?: any) => void;
-    selectComponent: (selector: string) => any;
-    selectAllComponents: () => any[];
-    createSelectorQuery: () => wts.SelectorQuery;
-    getRelationNodes: () => wts.NodesRef;
-    createIntersectionObserver: (options?: wts.IntersectionOptions) => wts.IntersectionObserver;
+    readonly setData: <K extends keyof D>(data: (Pick<D, K> | D), callback?: () => void) => void;
+    readonly triggerEvent: (name: string, detail?: any) => void;
+    readonly selectComponent: (selector: string) => any;
+    readonly selectAllComponents: () => any[];
+    readonly createSelectorQuery: () => wts.SelectorQuery;
+    readonly getRelationNodes: () => wts.NodesRef;
+    readonly createIntersectionObserver: (options?: wts.IntersectionOptions) => wts.IntersectionObserver;
 }
 /**
  * @default undefined
@@ -46,9 +46,9 @@ export declare class Widget<D = any> {
  */
 export declare function widget(inital?: InitalData): (target: new () => Widget<any>) => void;
 export interface ImageFile {
-    path: string;
-    name: string;
-    file: string;
+    readonly path: string;
+    readonly name: string;
+    readonly file: string;
 }
 export declare class Network {
     /**
@@ -71,18 +71,18 @@ export declare class Network {
      * @param resp the http response object
      */
     protected resolve(resp: wts.HttpResponse): any;
-    upload(file: ImageFile, loading?: boolean): Promise<string>;
-    anytask(path: string, data?: any, loading?: boolean): Promise<any>;
-    objtask<T>(c: new (json: any) => T, path: string, data?: any, loading?: boolean): Promise<T>;
-    arytask<T>(c: new (json: any) => T, path: string, data?: any, loading?: boolean): Promise<T[]>;
+    readonly upload: (file: ImageFile, loading?: boolean) => Promise<string>;
+    readonly anytask: (path: string, data?: any, loading?: boolean) => Promise<any>;
+    readonly objtask: <T>(c: new (json: any) => T, path: string, data?: any, loading?: boolean) => Promise<T>;
+    readonly arytask: <T>(c: new (json: any) => T, path: string, data?: any, loading?: boolean) => Promise<T[]>;
 }
 declare class Popver {
-    alert(content: string, confirm?: () => void): void;
-    dialog(content: string, confirm?: () => void, cancel?: () => void): void;
-    remind(ok: string, dismiss?: () => void): void;
-    error(err: Error): void;
-    waiting(title?: string): void;
-    idling(): void;
+    readonly alert: (content: string, confirm?: () => void) => void;
+    readonly dialog: (content: string, confirm?: () => void, cancel?: () => void) => void;
+    readonly remind: (ok: string, dismiss?: () => void) => void;
+    readonly error: (err: Error) => void;
+    readonly waiting: (title?: string) => void;
+    readonly idling: () => void;
 }
 export declare const pop: Popver;
 export interface Listener {
@@ -148,10 +148,10 @@ export declare class Socket {
     protected didError(error: Error): void;
     readonly isConnected: boolean;
     readonly isConnecting: boolean;
-    start: () => void;
-    stop: () => void;
-    addListener: (listener: Listener) => void;
-    removeListener: (listener: Listener) => void;
+    readonly start: () => void;
+    readonly stop: () => void;
+    readonly addListener: (listener: Listener) => void;
+    readonly removeListener: (listener: Listener) => void;
 }
 export interface StorageAble {
     id: string | number;
