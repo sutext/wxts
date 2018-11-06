@@ -51,27 +51,37 @@ For src/widgets/hello/index.wxml
 ```
 For src/pages/index/index.ts : 
 ```ts
-import { page, IPage} from 'wxts'
+import { page, IPage } from 'wxts'
 import Hello from '../../widgets/hello/index'
-const items = [{title:"系统版本",key:"model"},{title:"屏幕宽度",key:"screenWidth"},{title:"屏幕高度",key:"screenHeight"}]
-@page({items})
-export default class Index extends IPage implements wts.IPage{
-    private hello:Hello
-    onLoad(){
+const items = [{ title: "系统版本", key: "model" }, { title: "屏幕宽度", key: "screenWidth" }, { title: "屏幕高度", key: "screenHeight" }]
+@page({ items })
+export default class Index extends IPage implements wts.IPage {
+    private hello: Hello
+    onLoad() {
         this.hello = this.selectComponent('#hello')
     }
-    sayWorld(){
+    sayWorld() {
         this.hello.sayWorld()
     }
 }
 ```
 For src/pages/index/index.wxml :
 ```xml
-<view style="display:flex;flex-direction: column;">
-    <hello id="hello"/>
-    <view wx:for="{{items}}">{{item.title}}:{{env[itme.key]}}</view>
+<view class="content">
+    <hello id="hello" />
+    <view wx:for="{{items}}" wx:key="">{{item.title}}:{{env[item.key]}}</view>
     <button bind:tap="sayWorld">say world</button>
 </view>
+```
+For src/pages/index/index.wxss ：
+```css
+.content{
+    display:flex;
+    flex-direction: column;
+    align-items: center;
+    line-height: 38px;
+    padding: 0 15px;
+}
 ```
 For src/pages/index/index.json :
 ```json
