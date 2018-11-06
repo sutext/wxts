@@ -8,5 +8,8 @@
             "es2015",
             "dom",
         ],
+        "typeRoots": [
+            "wxlib"
+        ]
     }
 }

@@ -1,16 +1,15 @@
 {
     "name": "wxts",
-    "version": "0.2.2",
+    "version": "0.2.3",
     "description": "wexin typescript suport!",
     "main": "index.js",
     "files": [
         "index.js",
         "index.d.ts",
-        "types.d.ts",
-        "install.js"
+        "wxlib"
     ],
     "scripts": {
-        "install": "node install.js",
+        "install": "node wxlib/install.js",
         "start": "tsc"
     },
     "repository": {
