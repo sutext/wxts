@@ -388,7 +388,7 @@ export class Socket {
             console.log(msg, other || '')
         }
     }
-    private handle = (msg: any, isOffline: boolean) => {
+    protected handle = (msg: any, isOffline: boolean) => {
         if (msg.type == "PONG") {
             if (this.pingTimeout) {
                 clearTimeout(this.pingTimeout)
@@ -422,14 +422,15 @@ export class Socket {
         throw new Error('you must provide url like wss://xxx.com ')
     }
     /**
-     * you mast tell me you login status
      * @default false
+     * @description you mast tell me the login status
      */
     protected get isLogin(): boolean {
         return false
     }
     /**
-     * print debug info or not
+     * @default true
+     * @description print debug info or not
      */
     protected get isDebug(): boolean {
         return true
@@ -441,7 +442,7 @@ export class Socket {
     protected isAuthClose(res: wts.SocketCloser): boolean {
         return res.code === 4001 || res.code === 4002
     }
-    /** the staus observe . It will be call when socket never attemped */
+    /** the status observer . It will be call when socket never attemped */
     protected didConnected() {
 
     }
@@ -466,6 +467,11 @@ export class Socket {
     public get isConnecting(): boolean {
         return this._isConnecting
     }
+    /**
+     * @description start the socket monitor. 
+     * try to connect the socket server.
+     * the heartbeat mechanism will be work
+     */
     public readonly start = () => {
         if (this.timer) {
             return;
@@ -476,6 +482,10 @@ export class Socket {
         this.attemptTimes = 0
         this.timerFunc();
     }
+    /**
+     * @description stop the socket monitor. 
+     * stop heartbeat mechanism
+     */
     public readonly stop = () => {
         if (!this.timer) {
             return;
@@ -484,9 +494,15 @@ export class Socket {
         this.timer = null
         this.close()
     }
+    /**
+     *@description add an listener
+     */
     public readonly addListener = (listener: Listener) => {
         this.listeners.add(listener)
     }
+    /**
+     * @description remove the listener
+     */
     public readonly removeListener = (listener: Listener) => {
         this.listeners.delete(listener);
     }
@@ -497,20 +513,43 @@ export interface StorageAble {
     className: string
 }
 class Storage {
+    /**
+     * @description insert or update an object
+     * @param model The instance of T to be insert.
+     */
     public readonly save = <T extends StorageAble>(model: T) => {
         if (!model || model.isEmpty) return;
         const key = model.className + "." + model.id
         const keys: any = wx.getStorageSync(model.className) || {}
-        keys.key = ''
+        keys[key] = ''
         wx.setStorageSync(model.className, keys)
         wx.setStorageSync(key, model)
     }
+    /**
+     * @description find an instance of T by id
+     * @param c The class of T
+     * @param id The primaryKey of T
+     */
     public readonly find = <T extends StorageAble>(c: new (json?: any) => T, id: string | number): T | undefined => {
         const classkey = new c().className
         if (!(id && classkey)) return null;
         const obj = wx.getStorageSync(classkey + "." + id)
         return obj ? new c(obj) : null
     }
+    /**
+     * @description remote an instance of T by id
+     * @param c The class of T
+     * @param id The primaryKey of T
+     */
+    public readonly remove = <T extends StorageAble>(c: new (json?: any) => T, id: string | number) => {
+        const classkey = new c().className
+        if (!(id && classkey)) return;
+        wx.removeStorageSync(classkey + "." + id)
+    }
+    /**
+     * @description query all instance of T
+     * @param c The class of T
+     */
     public readonly all = <T extends StorageAble>(c: new (json?: any) => T): T[] => {
         const classkey = new c().className
         if (!classkey) return []
@@ -524,5 +563,19 @@ class Storage {
         }
         return result;
     }
+    /**
+     * @description remove all instance of T
+     * @param c The class of T
+     */
+    public readonly clear = <T extends StorageAble>(c: new (json?: any) => T) => {
+        const classkey = new c().className
+        if (!classkey) return
+        const keys = wx.getStorageSync(classkey)
+        for (const key in keys) {
+            wx.removeStorageSync(key)
+        }
+        wx.removeStorageSync(classkey)
+    }
+
 }
 export const storage = new Storage()

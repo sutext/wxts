@@ -972,9 +972,9 @@ declare namespace wts {
         /**设备像素比 */
         pixelRatio: string;
         /**窗口宽度 */
-        windowWidth: string;
+        windowWidth: number;
         /**窗口高度 */
-        windowHeight: string;
+        windowHeight: number;
         /**微信设置的语言 */
         language: string;
         /**微信版本号 */
@@ -984,9 +984,9 @@ declare namespace wts {
         /**客户端平台 */
         platform: string;
         /**屏幕宽度 */
-        screenWidth: string;
+        screenWidth: number;
         /**屏幕高度 */
-        screenHeight: string;
+        screenHeight: number;
         /**用户字体大小设置 */
         fontSizeSetting: string;
         /**客户端基础库版本 */
