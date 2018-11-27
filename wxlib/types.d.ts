@@ -218,7 +218,7 @@ declare namespace wts {
         /**从本地缓存中异步移除指定key */
         removeStorage(param: RemoveStorageParam): void;
         /**从本地缓存中同步移除指定key */
-        removeStorageSync(key: string): void;
+        removeStorageSync(key: string): any;
         /**清理本地数据缓存 */
         clearStorage(): void;
         /**同步清理本地数据缓存 */

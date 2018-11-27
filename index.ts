@@ -100,7 +100,7 @@ export function widget(inital?: InitalData) {
     }
 }
 
-export interface ImageFile {
+export interface UploadFile {
     readonly path: string
     readonly name: string
     readonly file: string
@@ -134,7 +134,7 @@ export class Network {
     protected resolve(resp: wts.HttpResponse): any {
         throw new Error('Network.resolve must be implement')
     }
-    public readonly upload = (file: ImageFile, loading?: boolean): Promise<string> => {
+    public readonly upload = (file: UploadFile, loading?: boolean): Promise<string> => {
         wx.showNavigationBarLoading()
         if (loading) pop.waiting()
         return new Promise((resolve, reject) => {
@@ -241,9 +241,9 @@ class Popver {
     public readonly dialog = (content: string, confirm?: () => void, cancel?: () => void) => {
         wx.showModal({
             title: "提示", content: content, showCancel: true, success: res => {
-                if (res.confirm && confirm) {
+                if (res.confirm && typeof confirm === 'function') {
                     confirm()
-                } else if (res.cancel && cancel) {
+                } else if (res.cancel && typeof cancel === 'function') {
                     cancel()
                 }
             }
@@ -252,17 +252,13 @@ class Popver {
     public readonly remind = (ok: string, dismiss?: () => void) => {
         wx.showToast({ title: ok, icon: "success", duration: 1000, mask: true })
         setTimeout(() => {
-            if (dismiss) {
+            if (typeof dismiss === 'function') {
                 dismiss()
             }
         }, 1000);
     }
     public readonly error = (err: Error) => {
-        let msg = err.message
-        if (!msg) {
-            msg = "服务异常"
-        }
-        wx.showModal({ title: "提示", content: msg, showCancel: false })
+        wx.showModal({ title: "提示", content: err.message || "服务异常", showCancel: false })
     }
     public readonly waiting = (title?: string) => {
         wx.showLoading({ title: title || '加载中', mask: true })
@@ -507,75 +503,162 @@ export class Socket {
         this.listeners.delete(listener);
     }
 }
-export interface StorageAble {
-    id: string | number
-    isEmpty: boolean
-    className: string
-}
-class Storage {
+
+export namespace storage {
+    function awake<T>(cls: IMetaClass<T>, json: any) {
+        if (!json) {
+            return undefined
+        }
+        const obj = new cls()
+        Object.assign(obj, json)
+        const fields: IChildField[] = cls['sg_fields']
+        if (fields && fields.length > 0) {
+            for (const field of fields) {
+                const subjson = obj[field.name]
+                if (!subjson) {
+                    continue
+                }
+                const subobj = awake(field.class, subjson)
+                obj[field.name] = subobj
+            }
+        }
+        return obj
+    }
+    export interface IMetaClass<T> {
+        new(json?: any): T
+    }
+    export interface IChildField {
+        name: string
+        class: IMetaClass<any>
+    }
     /**
-     * @description insert or update an object
-     * @param model The instance of T to be insert.
+     * @description  A class decorate use to store class.
+     * @param clsname the class name of your storage class
+     * @param primary the primary key name of your storage class
      */
-    public readonly save = <T extends StorageAble>(model: T) => {
-        if (!model || model.isEmpty) return;
-        const key = model.className + "." + model.id
-        const keys: any = wx.getStorageSync(model.className) || {}
+    export const store = (clsname: string, primary: string) => {
+        return <T>(target: storage.IMetaClass<T>) => {
+            target['sg_clsname'] = clsname
+            target['sg_primary'] = primary
+        }
+    }
+    /**
+     * @description  A property decorate to mark a field  also a store class.
+     * @param cls the class of field.
+     */
+    export const field = <T>(cls: storage.IMetaClass<T>) => {
+        return (target: Object, field: string) => {
+            const fields: storage.IChildField[] = (target.constructor['sg_fields'] = target.constructor['sg_fields'] || [])
+            fields.push({ name: field, class: cls })
+        }
+    }
+    /**
+     * @description save an storage able class.
+     * @param model the model class must be mark with @storage(...)
+     * @throws did't mark error
+     */
+    export const save = <T>(model: T) => {
+        if (!model) {
+            return
+        }
+        const classkey = model.constructor['sg_clsname']
+        const primary = model.constructor['sg_primary']
+        if (!classkey || !primary) {
+            throw new Error(`The Class:${model.constructor.name} did\'t  mark with decorate @store(clsname,primary)`)
+        }
+        const id = model[primary]
+        if (id === undefined || id === null) {
+            return
+        }
+        const key = classkey + "." + id
+        const keys: any = wx.getStorageSync(classkey) || {}
         keys[key] = ''
-        wx.setStorageSync(model.className, keys)
+        wx.setStorageSync(classkey, keys)
         wx.setStorageSync(key, model)
     }
     /**
-     * @description find an instance of T by id
-     * @param c The class of T
-     * @param id The primaryKey of T
+     * @description find an storaged object whith id.
+     * @param cls the storage class witch must be mark with @storage(...)
+     * @param id the primary key of the cls
+     * @throws did't mark error
      */
-    public readonly find = <T extends StorageAble>(c: new (json?: any) => T, id: string | number): T | undefined => {
-        const classkey = new c().className
-        if (!(id && classkey)) return null;
-        const obj = wx.getStorageSync(classkey + "." + id)
-        return obj ? new c(obj) : null
+    export const find = <T>(cls: IMetaClass<T>, id: string | number): T | undefined => {
+        const classkey = cls['sg_clsname']
+        if (!classkey) {
+            throw new Error(`The Class:${cls.name} did\'t  mark with decorate @store(clsname,primary)`)
+        }
+        if (!id) {
+            return
+        }
+        const json = wx.getStorageSync(classkey + "." + id)
+        return awake(cls, json)
     }
     /**
-     * @description remote an instance of T by id
-     * @param c The class of T
-     * @param id The primaryKey of T
+     * @description find all storaged object of cls.
+     * @param cls the storage class witch must be mark with @storage(...)
+     * @throws did't mark error
      */
-    public readonly remove = <T extends StorageAble>(c: new (json?: any) => T, id: string | number) => {
-        const classkey = new c().className
-        if (!(id && classkey)) return;
-        wx.removeStorageSync(classkey + "." + id)
-    }
-    /**
-     * @description query all instance of T
-     * @param c The class of T
-     */
-    public readonly all = <T extends StorageAble>(c: new (json?: any) => T): T[] => {
-        const classkey = new c().className
-        if (!classkey) return []
+    export const all = <T>(cls: IMetaClass<T>): T[] => {
+        const classkey = cls['sg_clsname']
+        if (!classkey) {
+            throw new Error(`The Class:${cls.name} did\'t  mark with decorate @store(clsname,primary)`)
+        }
         const keys = wx.getStorageSync(classkey)
+        if (!keys) {
+            return [];
+        }
         const result: T[] = []
         for (const key in keys) {
-            let obj = wx.getStorageSync(key)
+            const obj = awake(cls, wx.getStorageSync(key))
             if (obj) {
-                result.push(new c(obj))
+                result.push(obj)
             }
         }
         return result;
     }
     /**
-     * @description remove all instance of T
-     * @param c The class of T
+     * @description get the count of all storaged object of cls.
+     * @param cls the storage class witch must be mark with @storage(...)
+     * @throws did't mark error
      */
-    public readonly clear = <T extends StorageAble>(c: new (json?: any) => T) => {
-        const classkey = new c().className
-        if (!classkey) return
-        const keys = wx.getStorageSync(classkey)
-        for (const key in keys) {
-            wx.removeStorageSync(key)
+    export const count = <T>(cls: IMetaClass<T>): number => {
+        const classkey = cls['sg_clsname']
+        if (!classkey) {
+            throw new Error(`The Class:${cls.name} did\'t  mark with decorate @store(clsname,primary)`)
         }
-        wx.removeStorageSync(classkey)
+        const keys = wx.getStorageSync(classkey)
+        return keys ? Object.keys(keys).length : 0
     }
-
+    /**
+     * @description remove all storaged object of cls.
+     * @param cls the storage class witch must be mark with @storage(...)
+     * @throws did't mark error
+     */
+    export const clear = <T>(cls: IMetaClass<T>): void => {
+        const classkey = cls['sg_clsname']
+        if (!classkey) {
+            throw new Error(`The Class:${cls.name} did\'t  mark with decorate @store(clsname,primary)`)
+        }
+        const keys = wx.getStorageSync(classkey)
+        if (keys) {
+            for (const key in keys) {
+                wx.removeStorageSync(key)
+            }
+            wx.removeStorageSync(classkey)
+        }
+    }
+    /**
+     * @description remove an special storaged object of cls.
+     * @param cls the storage class witch must be mark with @storage(...)
+     * @param id the primary key of the cls
+     * @throws did't mark error
+     */
+    export const remove = <T>(cls: IMetaClass<T>, id: string | number) => {
+        const classkey = cls['sg_clsname']
+        if (!classkey) {
+            throw new Error(`The Class:${cls.name} did\'t  mark with decorate @store(clsname,primary)`)
+        }
+        if (!id) return;
+        wx.removeStorageSync(classkey + "." + id)
+    }
 }
-export const storage = new Storage()
