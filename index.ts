@@ -234,40 +234,7 @@ export class Network {
         });
     }
 }
-class Popver {
-    public readonly alert = (content: string, confirm?: () => void) => {
-        wx.showModal({ title: "提示", content: content, showCancel: false, success: confirm })
-    }
-    public readonly dialog = (content: string, confirm?: () => void, cancel?: () => void) => {
-        wx.showModal({
-            title: "提示", content: content, showCancel: true, success: res => {
-                if (res.confirm && typeof confirm === 'function') {
-                    confirm()
-                } else if (res.cancel && typeof cancel === 'function') {
-                    cancel()
-                }
-            }
-        })
-    }
-    public readonly remind = (ok: string, dismiss?: () => void) => {
-        wx.showToast({ title: ok, icon: "success", duration: 1000, mask: true })
-        setTimeout(() => {
-            if (typeof dismiss === 'function') {
-                dismiss()
-            }
-        }, 1000);
-    }
-    public readonly error = (err: Error) => {
-        wx.showModal({ title: "提示", content: err.message || "服务异常", showCancel: false })
-    }
-    public readonly waiting = (title?: string) => {
-        wx.showLoading({ title: title || '加载中', mask: true })
-    }
-    public readonly idling = () => {
-        wx.hideLoading()
-    }
-}
-export const pop = new Popver()
+
 export interface Listener {
     onMessage(json: any, isOffline: boolean);
 }
@@ -503,7 +470,39 @@ export class Socket {
         this.listeners.delete(listener);
     }
 }
-
+export namespace pop {
+    export const alert = (content: string, confirm?: () => void) => {
+        wx.showModal({ title: "提示", content: content, showCancel: false, success: confirm })
+    }
+    export const dialog = (content: string, confirm?: () => void, cancel?: () => void) => {
+        wx.showModal({
+            title: "提示", content: content, showCancel: true, success: res => {
+                if (res.confirm && typeof confirm === 'function') {
+                    confirm()
+                } else if (res.cancel && typeof cancel === 'function') {
+                    cancel()
+                }
+            }
+        })
+    }
+    export const remind = (ok: string, dismiss?: () => void) => {
+        wx.showToast({ title: ok, icon: "success", duration: 1000, mask: true })
+        setTimeout(() => {
+            if (typeof dismiss === 'function') {
+                dismiss()
+            }
+        }, 1000);
+    }
+    export const error = (err: Error) => {
+        wx.showModal({ title: "提示", content: err.message || "服务异常", showCancel: false })
+    }
+    export const waiting = (title?: string) => {
+        wx.showLoading({ title: title || '加载中', mask: true })
+    }
+    export const idling = () => {
+        wx.hideLoading()
+    }
+}
 export namespace storage {
     function awake<T>(cls: IMetaClass<T>, json: any) {
         if (!json) {
@@ -518,8 +517,13 @@ export namespace storage {
                 if (!subjson) {
                     continue
                 }
-                const subobj = awake(field.class, subjson)
-                obj[field.name] = subobj
+                if (Array.isArray(subjson)) {
+                    obj[field.name] = (subjson as any[]).map(json => {
+                        return awake(field.class, json)
+                    })
+                } else {
+                    obj[field.name] = awake(field.class, subjson)
+                }
             }
         }
         return obj
@@ -554,7 +558,7 @@ export namespace storage {
     }
     /**
      * @description save an storage able class.
-     * @param model the model class must be mark with @storage(...)
+     * @param model the model class must be mark with @store(...)
      * @throws did't mark error
      */
     export const save = <T>(model: T) => {
@@ -578,7 +582,7 @@ export namespace storage {
     }
     /**
      * @description find an storaged object whith id.
-     * @param cls the storage class witch must be mark with @storage(...)
+     * @param cls the storage class witch must be mark with @store(...)
      * @param id the primary key of the cls
      * @throws did't mark error
      */
@@ -595,7 +599,7 @@ export namespace storage {
     }
     /**
      * @description find all storaged object of cls.
-     * @param cls the storage class witch must be mark with @storage(...)
+     * @param cls the storage class witch must be mark with @store(...)
      * @throws did't mark error
      */
     export const all = <T>(cls: IMetaClass<T>): T[] => {
@@ -618,7 +622,7 @@ export namespace storage {
     }
     /**
      * @description get the count of all storaged object of cls.
-     * @param cls the storage class witch must be mark with @storage(...)
+     * @param cls the storage class witch must be mark with @store(...)
      * @throws did't mark error
      */
     export const count = <T>(cls: IMetaClass<T>): number => {
@@ -631,7 +635,7 @@ export namespace storage {
     }
     /**
      * @description remove all storaged object of cls.
-     * @param cls the storage class witch must be mark with @storage(...)
+     * @param cls the storage class witch must be mark with @store(...)
      * @throws did't mark error
      */
     export const clear = <T>(cls: IMetaClass<T>): void => {
@@ -649,7 +653,7 @@ export namespace storage {
     }
     /**
      * @description remove an special storaged object of cls.
-     * @param cls the storage class witch must be mark with @storage(...)
+     * @param cls the storage class witch must be mark with @store(...)
      * @param id the primary key of the cls
      * @throws did't mark error
      */
