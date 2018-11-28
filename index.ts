@@ -504,44 +504,46 @@ export namespace pop {
     }
 }
 export namespace storage {
+    export interface IMetaClass<T> {
+        new(json?: any): T
+    }
+    const stored: any = {}
     function awake<T>(cls: IMetaClass<T>, json: any) {
         if (!json) {
             return undefined
         }
         const obj = new cls()
         Object.assign(obj, json)
-        const fields: IChildField[] = cls['sg_fields']
-        if (fields && fields.length > 0) {
-            for (const field of fields) {
-                const subjson = obj[field.name]
+        const fields = cls['sg_fields']
+        if (fields) {
+            for (const field in fields) {
+                const subjson = obj[field]
                 if (!subjson) {
                     continue
                 }
                 if (Array.isArray(subjson)) {
-                    obj[field.name] = (subjson as any[]).map(json => {
-                        return awake(field.class, json)
+                    obj[field] = (subjson as any[]).map(json => {
+                        return awake(fields[field], json)
                     })
                 } else {
-                    obj[field.name] = awake(field.class, subjson)
+                    obj[field] = awake(fields[field], subjson)
                 }
             }
         }
         return obj
     }
-    export interface IMetaClass<T> {
-        new(json?: any): T
-    }
-    export interface IChildField {
-        name: string
-        class: IMetaClass<any>
-    }
     /**
      * @description  A class decorate use to store class.
      * @param clsname the class name of your storage class
      * @param primary the primary key name of your storage class
+     * @throws class already exist error.
      */
     export const store = (clsname: string, primary: string) => {
-        return <T>(target: storage.IMetaClass<T>) => {
+        if (stored[clsname]) {
+            throw new Error(`The clsname:${clsname} already exist!!You can't mark different class with same name!!`)
+        }
+        stored[clsname] = true
+        return <T>(target: IMetaClass<T>) => {
             target['sg_clsname'] = clsname
             target['sg_primary'] = primary
         }
@@ -550,10 +552,10 @@ export namespace storage {
      * @description  A property decorate to mark a field  also a store class.
      * @param cls the class of field.
      */
-    export const field = <T>(cls: storage.IMetaClass<T>) => {
+    export const field = <T>(cls: IMetaClass<T>) => {
         return (target: Object, field: string) => {
-            const fields: storage.IChildField[] = (target.constructor['sg_fields'] = target.constructor['sg_fields'] || [])
-            fields.push({ name: field, class: cls })
+            const fields = target.constructor['sg_fields'] || (target.constructor['sg_fields'] = {})
+            fields[field] = cls
         }
     }
     /**
