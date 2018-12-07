@@ -15,7 +15,7 @@ declare function Behavior(param: wts.IComponent): any
 declare function getApp(): wts.IApp;
 
 /**获取当前页面栈的实例 以数组形式按栈的顺序给出 第一个元素为首页 最后一个元素为当前页面 */
-declare function getCurrentPages(): wts.IPage;
+declare function getCurrentPages(): wts.IPage[];
 
 declare var wx: wts.wx;
 /**
