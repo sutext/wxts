@@ -99,16 +99,34 @@ export function widget(inital?: InitalData) {
         Component(result)
     }
 }
-
-export interface UploadFile {
+/**
+ * @description the upload file struct
+ * @param path the relative request path
+ * @param name the filename
+ * @param file the file local path  @example the result of wx.chooseImage
+ */
+export interface NTUploadFile {
     readonly path: string
     readonly name: string
     readonly file: string
 }
+/**
+ * @description the addtion network params
+ * @param loading show loading modal or not or custome loading message. @default false 
+ * if true the default message is '加载中' . You can provide your custom message.
+ * @param method  the http method to overwrite global http method config
+ * the method will be ignore when upload file.
+ * @param timestamp if true .the timestamp in http header will be return to result @default false
+ */
+export interface NTOptions {
+    readonly loading?: boolean | string
+    readonly method?: wts.HttpMethod
+    readonly timestamp?: boolean
+}
 export class Network {
     /**
      * @default POST
-     * @description provide request methd
+     * @description the global http method config
      */
     protected get method(): wts.HttpMethod {
         return 'POST'
@@ -134,9 +152,9 @@ export class Network {
     protected resolve(resp: wts.HttpResponse): any {
         throw new Error('Network.resolve must be implement')
     }
-    public readonly upload = (file: UploadFile, loading?: boolean): Promise<string> => {
+    public readonly upload = (file: NTUploadFile, options?: NTOptions): Promise<any> => {
         wx.showNavigationBarLoading()
-        if (loading) pop.waiting()
+        if (options && options.loading) pop.waiting(typeof options.loading === 'string' ? options.loading : undefined)
         return new Promise((resolve, reject) => {
             wx.uploadFile({
                 name: file.name,
@@ -145,11 +163,11 @@ export class Network {
                 filePath: file.file,
                 complete: res => {
                     wx.hideNavigationBarLoading()
-                    if (loading) pop.idling()
+                    if (options && options.loading) pop.idling()
                     try {
                         res.data = JSON.parse(res.data)
                         const value = this.resolve(res)
-                        resolve(value.key)
+                        resolve(value)
                     } catch (error) {
                         reject(error)
                     }
@@ -157,21 +175,21 @@ export class Network {
             })
         })
     }
-    public readonly anytask = (path: string, data?: any, loading?: boolean): Promise<any> => {
+    public readonly anytask = (path: string, data?: any, options?: NTOptions): Promise<any> => {
         wx.showNavigationBarLoading()
-        if (loading) pop.waiting()
+        if (options && options.loading) pop.waiting(typeof options.loading === 'string' ? options.loading : undefined)
         return new Promise((resolve, reject) => {
             wx.request({
                 url: this.url(path),
                 header: this.header,
                 data: data,
-                method: this.method,
+                method: options && options.method ? options.method : this.method,
                 complete: result => {
                     wx.hideNavigationBarLoading()
-                    if (loading) pop.idling()
+                    if (options && options.loading) pop.idling()
                     try {
                         const value = this.resolve(result)
-                        if (value && result.header && result.header.Date) {
+                        if (options && options.timestamp && value && result.header && result.header.Date) {
                             value.timestamp = new Date(result.header.Date).getTime()
                         }
                         resolve(value)
@@ -182,21 +200,21 @@ export class Network {
             })
         });
     }
-    public readonly objtask = <T>(c: new (json: any) => T, path: string, data?: any, loading?: boolean): Promise<T> => {
+    public readonly objtask = <T>(c: new (json: any) => T, path: string, data?: any, options?: NTOptions): Promise<T> => {
         wx.showNavigationBarLoading()
-        if (loading) pop.waiting()
+        if (options && options.loading) pop.waiting(typeof options.loading === 'string' ? options.loading : undefined)
         return new Promise((resolve, reject) => {
             wx.request({
                 url: this.url(path),
                 header: this.header,
                 data: data,
-                method: this.method,
+                method: options && options.method ? options.method : this.method,
                 complete: result => {
                     wx.hideNavigationBarLoading()
-                    if (loading) pop.idling()
+                    if (options && options.loading) pop.idling()
                     try {
                         const value = this.resolve(result)
-                        if (value && result.header && result.header.Date) {
+                        if (options && options.timestamp && value && result.header && result.header.Date) {
                             value.timestamp = new Date(result.header.Date).getTime()
                         }
                         resolve(new c(value))
@@ -207,18 +225,18 @@ export class Network {
             })
         });
     }
-    public readonly arytask = <T>(c: new (json: any) => T, path: string, data?: any, loading?: boolean): Promise<T[]> => {
+    public readonly arytask = <T>(c: new (json: any) => T, path: string, data?: any, options?: NTOptions): Promise<T[]> => {
         wx.showNavigationBarLoading()
-        if (loading) pop.waiting()
+        if (options && options.loading) pop.waiting(typeof options.loading === 'string' ? options.loading : undefined)
         return new Promise((resolve, reject) => {
             wx.request({
                 url: this.url(path),
                 header: this.header,
                 data: data,
-                method: this.method,
+                method: options && options.method ? options.method : this.method,
                 complete: result => {
                     wx.hideNavigationBarLoading()
-                    if (loading) pop.idling()
+                    if (options && options.loading) pop.idling()
                     try {
                         const value = this.resolve(result)
                         if (value && value.length > 0) {
@@ -471,9 +489,20 @@ export class Socket {
     }
 }
 export namespace pop {
+    /**
+     * @description alert user some message
+     * @param content the message to be show
+     * @param confirm  the confirm callback
+     */
     export const alert = (content: string, confirm?: () => void) => {
         wx.showModal({ title: "提示", content: content, showCancel: false, success: confirm })
     }
+    /**
+     * @description the dialog that need user make a decision
+     * @param content the message to be show
+     * @param confirm  the confirm callback
+     * @param cancel the cancel callback
+     */
     export const dialog = (content: string, confirm?: () => void, cancel?: () => void) => {
         wx.showModal({
             title: "提示", content: content, showCancel: true, success: res => {
@@ -485,6 +514,11 @@ export namespace pop {
             }
         })
     }
+    /**
+     * @description remind some successful msg to user. It will be auto dimiss affter 1s
+     * @param ok the ok message
+     * @param dismiss the callback of affter auto dismiss
+     */
     export const remind = (ok: string, dismiss?: () => void) => {
         wx.showToast({ title: ok, icon: "success", duration: 1000, mask: true })
         setTimeout(() => {
@@ -493,12 +527,23 @@ export namespace pop {
             }
         }, 1000);
     }
+    /**
+     * @description to alert some err 
+     * @param err the err to be display
+     */
     export const error = (err: Error) => {
         wx.showModal({ title: "提示", content: err.message || "服务异常", showCancel: false })
     }
+    /**
+     * @description show wating mask
+     * @param title the loading title @default '加载中'
+     */
     export const waiting = (title?: string) => {
         wx.showLoading({ title: title || '加载中', mask: true })
     }
+    /**
+     * @description hide the waiting mask . 
+     */
     export const idling = () => {
         wx.hideLoading()
     }
