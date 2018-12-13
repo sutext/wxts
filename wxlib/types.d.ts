@@ -319,12 +319,12 @@ declare namespace wts {
         /**隐藏键盘 */
         hideKeyboard(): void;
         /**停止下拉刷新动画 */
-        stopPullDownRefresh(): void;
+        stopPullDownRefresh(params?: Callback): void;
         /**
          * @since 1.5.0
          * @description 开始下拉刷新 调用后触发下拉刷新动画 效果与用户手动下拉刷新一致
          */
-        startPullDownRefresh(param: ErrMsgCallback): never;
+        startPullDownRefresh(param?: ErrMsgCallback): never;
         // 开放接口
         /**登录 */
         login(param: LoginParam): void;
@@ -466,7 +466,7 @@ declare namespace wts {
         /**监听用户主动截屏事件 用户使用系统截屏按键截屏时触发此事件 */
         onUserCaptureScreen(callback?: Function): never;
         /**将页面滚动到目标位置 单位px */
-        pageScrollTo(scrollTop: number): never;
+        pageScrollTo(callback: Callback & { scrollTop: number, duration?: number }): never;
         /**支持小程序修改标题栏颜色 */
         setNavigationBarColor(param: SetNavigationBarColorParam): never;
         /**设置是否打开调试开关 此开关对正式版也能生效 */
