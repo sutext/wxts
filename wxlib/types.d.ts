@@ -124,7 +124,7 @@ declare namespace wts {
         /**接受 WebSocket 消息 */
         onSocketMessage(callback: (res?: { data: string | ArrayBuffer }) => void): void;
         /**关闭 WebSocket 连接 */
-        closeSocket(param: SocketCloser & Callback): void;
+        closeSocket(param: SocketClose & Callback): void;
         /**监听 WebSocket 关闭 */
         onSocketClose(callback: (res?: any) => void): void;
 
@@ -609,20 +609,24 @@ declare namespace wts {
     }
     interface SocketTask {
         send(send: SocketMessage & Callback): void
-        close(close: SocketCloser & Callback): void
-        onOpen(callback: (header: any) => void): void
-        onClose(callback: (res: SocketCloser) => void): void
-        onError(callback: (res: { errMsg: string }) => void): void
+        close(close: SocketClose & Callback): void
+        onOpen(callback: (res: any) => void): void
+        onClose(callback: (res: SocketClose) => void): void
+        onError(callback: (res: SocketError) => void): void
         onMessage(callback: (res: SocketMessage) => void): void
     }
-    interface SocketMessage {
-        data: string | ArrayBuffer;
+
+    interface SocketError {
+        errMsg: string
     }
-    interface SocketCloser extends Callback {
+    interface SocketClose extends Callback {
         /**关闭状态码 默认1000表示正常关闭 */
         code?: number;
         /**一个可读的字符串 表示连接被关闭的原因 这个字符串必须是不长于123字节的UTF-8 文本 */
         reason?: string;
+    }
+    interface SocketMessage {
+        data: string | ArrayBuffer;
     }
     interface ChooseImageParam extends Callback {
         /**最多可以选择的图片张数 默认9 */
@@ -643,7 +647,7 @@ declare namespace wts {
     interface ImageInfoParam extends Callback {
         /**图片的路径 可以是相对路径 临时文件路径 存储文件路径 */
         src: string;
-        success?: (res?: { width: number, height: number }) => void;
+        success?: (res?: { width: number, height: number, path: string, orientation: string, type: string }) => void;
     }
 
     interface RecordParam extends Callback {
@@ -1276,7 +1280,7 @@ declare namespace wts {
          * @param x 绘制文本的左上角x坐标位置
          * @param y 绘制文本的左上角y坐标位置
          */
-        fillText(text: string, x?: number, y?: number): void;
+        fillText(text: string, x?: number, y?: number, maxWidth?: number): void;
         /**
          * 在画布上绘制图像 图像保持原始尺寸
          * @param imageResource	通过chooseImage得到一个文件路径或者一个项目目录内的图片 所要绘制的图片资源

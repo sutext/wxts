@@ -169,8 +169,8 @@ class Socket extends wxts.Socket {
 the storage apis is an simple orm implements by wx.storage.
 for model.ts
 ```ts
-import {storage} from "wxts";
-@storage.store('Asset', 'account')
+import {orm} from "wxts";
+@orm.store('Asset', 'account')
 export class Asset{
     public readonly account: string
     public readonly balance:number
@@ -181,14 +181,14 @@ export class Asset{
         this.balance = json.balance || 0
     }
 }
-@storage.store('User', 'account')
+@orm.store('User', 'account')
 export class User {
     public readonly account: string
     public readonly nickname: string
     public readonly avatar: string
     public readonly phone: string
     public readonly area: string
-    @storage.field(Asset)
+    @orm.field(Asset)
     public readonly asset: Asset
     constructor(json?: any) {
         if (!json) {

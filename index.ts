@@ -10,6 +10,7 @@ function trim(obj: any): any {
 interface InitalData {
     [key: string]: any
 }
+
 export class IApp {
     [other: string]: any
 }
@@ -100,44 +101,15 @@ export function widget(inital?: InitalData) {
     }
 }
 /**
- * @description the upload file struct
- * @param path the relative request path
- * @param name the filename
- * @param file the file local path  @example the result of wx.chooseImage
+ * the meta constructor of netowrk and storage
  */
-export interface NTUploadFile {
-    readonly path: string
-    readonly name: string
-    readonly file: string
+export interface IMetaClass<T> {
+    new(json?: any): T
 }
-/**
- * @description the addtion network params
- * @param loading show loading modal or not or custome loading message. @default false 
- * if true the default message is '加载中' . You can provide your custom message.
- * @param method  the http method to overwrite global http method config
- * the method will be ignore when upload file.
- * @param timestamp if true .the timestamp in http header will be return to result @default false
- */
-export interface NTOptions {
-    readonly loading?: boolean | string
-    readonly method?: wts.HttpMethod
-    readonly timestamp?: boolean
-}
+
 export class Network {
-    /**
-     * @default POST
-     * @description the global http method config
-     */
-    protected get method(): wts.HttpMethod {
-        return 'POST'
-    }
-    /**
-     * @default {}
-     * @description provide custom http headers 
-     */
-    protected get header(): any {
-        return {}
-    }
+    protected headers: any = {}
+    protected method: wts.HttpMethod = 'POST'
     /**
      * @description resove relative uri to full url
      * @param path the relative uri
@@ -152,13 +124,13 @@ export class Network {
     protected resolve(resp: wts.HttpResponse): any {
         throw new Error('Network.resolve must be implement')
     }
-    public readonly upload = (file: NTUploadFile, options?: NTOptions): Promise<any> => {
+    public readonly upload = (file: Network.Upload, options?: Network.Options): Promise<any> => {
         wx.showNavigationBarLoading()
         if (options && options.loading) pop.waiting(typeof options.loading === 'string' ? options.loading : undefined)
         return new Promise((resolve, reject) => {
             wx.uploadFile({
                 name: file.name,
-                header: this.header,
+                header: this.headers,
                 url: this.url(file.path),
                 filePath: file.file,
                 complete: res => {
@@ -175,13 +147,24 @@ export class Network {
             })
         })
     }
-    public readonly anytask = (path: string, data?: any, options?: NTOptions): Promise<any> => {
+    public readonly anyreq = <T>(req: Network.Request<T>) => {
+        return this.anytask<T>(req.path, req.data, req.options)
+    }
+    public readonly objreq = <T>(req: Network.Request<T>) => {
+        if (typeof req.meta !== 'function') throw new Error('the req of objreq must be Function')
+        return this.objtask(req.meta as IMetaClass<T>, req.path, req.data, req.options)
+    }
+    public readonly aryreq = <T>(req: Network.Request<T>) => {
+        if (typeof req.meta !== 'function') throw new Error('the req of aryreq must be Function')
+        return this.arytask(req.meta as IMetaClass<T>, req.path, req.data, req.options)
+    }
+    public readonly anytask = <T = any>(path: string, data?: any, options?: Network.Options): Promise<T> => {
         wx.showNavigationBarLoading()
         if (options && options.loading) pop.waiting(typeof options.loading === 'string' ? options.loading : undefined)
         return new Promise((resolve, reject) => {
             wx.request({
                 url: this.url(path),
-                header: this.header,
+                header: this.headers,
                 data: data,
                 method: options && options.method ? options.method : this.method,
                 complete: result => {
@@ -200,13 +183,13 @@ export class Network {
             })
         });
     }
-    public readonly objtask = <T>(c: new (json: any) => T, path: string, data?: any, options?: NTOptions): Promise<T> => {
+    public readonly objtask = <T>(c: IMetaClass<T>, path: string, data?: any, options?: Network.Options): Promise<T> => {
         wx.showNavigationBarLoading()
         if (options && options.loading) pop.waiting(typeof options.loading === 'string' ? options.loading : undefined)
         return new Promise((resolve, reject) => {
             wx.request({
                 url: this.url(path),
-                header: this.header,
+                header: this.headers,
                 data: data,
                 method: options && options.method ? options.method : this.method,
                 complete: result => {
@@ -225,13 +208,13 @@ export class Network {
             })
         });
     }
-    public readonly arytask = <T>(c: new (json: any) => T, path: string, data?: any, options?: NTOptions): Promise<T[]> => {
+    public readonly arytask = <T>(c: IMetaClass<T>, path: string, data?: any, options?: Network.Options): Promise<T[]> => {
         wx.showNavigationBarLoading()
         if (options && options.loading) pop.waiting(typeof options.loading === 'string' ? options.loading : undefined)
         return new Promise((resolve, reject) => {
             wx.request({
                 url: this.url(path),
-                header: this.header,
+                header: this.headers,
                 data: data,
                 method: options && options.method ? options.method : this.method,
                 complete: result => {
@@ -252,11 +235,290 @@ export class Network {
         });
     }
 }
-
-export interface Listener {
-    onMessage(json: any, isOffline: boolean);
+export namespace Network {
+    /**
+     * @description the upload file struct
+     * @param path the relative request path
+     * @param name the filename
+     * @param file the file local path  @example the result of wx.chooseImage
+     */
+    export interface Upload {
+        readonly path: string
+        readonly name: string
+        readonly file: string
+    }
+    /**
+     * @description the addtion network params
+     * @param loading show loading modal or not or custome loading message. @default false 
+     * if true the default message is '加载中' . You can provide your custom message.
+     * @param method  the http method to overwrite global http method config
+     * the method will be ignore when upload file.
+     * @param timestamp if true .the timestamp in http header will be return to result @default false
+     */
+    export interface Options {
+        readonly loading?: boolean | string
+        readonly method?: wts.HttpMethod
+        readonly timestamp?: boolean
+    }
+    /**
+     * @description the network request interface use to packge request params
+     * @param path the request relattive path
+     * @param meta the respone data type descrpiton @notice it must be IMetaClass<T> in objreq() and aryreq()
+     * @param data the request data
+     * @param options the request options @see Options
+     */
+    export interface Request<T> {
+        readonly path: string
+        readonly meta: IMetaClass<T> | T
+        readonly data?: any
+        readonly options?: Options
+    }
 }
 export class Socket {
+    private _status: Socket.Status = 'closed'
+    private _retrying: boolean = false
+    private url: string
+    private task: wts.SocketTask
+    public retryable: boolean = false
+    public readonly retry: Socket.Retry
+    public onopen: (evt: Event, isRetry: boolean) => void
+    public onclose: (evt: wts.SocketClose) => void
+    public onerror: (evt: wts.SocketError) => void
+    public onfailed: (evt: wts.SocketClose) => void
+    public onmessage: (evt: wts.SocketMessage) => void
+    constructor(url: string) {
+        this.url = url
+        this.retry = new Socket.Retry(this.onRetryCallback.bind(this), this.onRetryFailed.bind(this))
+    }
+    private onRetryCallback() {
+        this.open()
+        this._retrying = true
+    }
+    private onRetryFailed(e: wts.SocketClose) {
+        this._retrying = false
+        if (typeof this.onfailed === 'function') {
+            this.onfailed(e)
+        }
+    }
+    private onOpenCallback(res: any) {
+        this._status = 'opened'
+        if (typeof this.onopen === 'function') {
+            this.onopen(res, this._retrying)
+        }
+        this._retrying = false
+    }
+    private onCloseCallback(res: wts.SocketClose) {
+        this._status = 'closed'
+        if (this.retryable && res.code < 3000) {
+            this.retry.attempt(res);
+        } else if (typeof this.onclose === 'function') {
+            this._retrying = false
+            this.onclose(res)
+        }
+    }
+    private onErrorCallback(res: wts.SocketError) {
+        if (typeof this.onerror === 'function') {
+            this.onerror(res)
+        }
+    }
+    private onMessageCallback(res: wts.SocketMessage) {
+        if (typeof this.onmessage === 'function') {
+            this.onmessage(res)
+        }
+    }
+    public readonly open = () => {
+        this.task = wx.connectSocket({ url: this.url })
+        this.task.onOpen(res => this.onOpenCallback(res))
+        this.task.onError(res => this.onErrorCallback(res))
+        this.task.onMessage(res => this.onMessageCallback(res))
+        this.task.onClose(res => this.onCloseCallback(res))
+        this._status = 'opening'
+    }
+    public readonly close = (code?: number, reason?: string) => {
+        if (!this.task) return
+        this._status = 'closing'
+        this.task.close({
+            code, reason, fail: () => {
+                this.onCloseCallback({ code, reason })
+            }
+        });
+    }
+    public readonly send = (data: string | ArrayBuffer) => {
+        this.task && this.task.send({ data });
+    }
+    public get status() { return this._status }
+    public get isRetrying() { return this._retrying }
+}
+export namespace Socket {
+    export type Status = 'closed' | 'closing' | 'opened' | 'opening'
+    export class Retry {
+        /**
+         * @description base attempt delay time @default 100 milliscond
+         * @description the real delay time use a exponential random algorithm
+         */
+        public delay: number = 100
+        /**
+         * @description the max retry times when retrying @default 5
+         */
+        public times: number = 5
+        private count: number = 0//已经尝试次数
+        private readonly onAttempt: (evt: wts.SocketClose) => void
+        private readonly onFailed: (evt: wts.SocketClose) => void
+        constructor(attempt: (evt: wts.SocketClose) => void, failed: (evt: wts.SocketClose) => void) {
+            this.onAttempt = attempt
+            this.onFailed = failed
+        }
+        private random(attempt: number, delay: number) {
+            return Math.floor((0.5 + Math.random() * 0.5) * Math.pow(2, attempt) * delay);
+        }
+        public readonly reset = () => {
+            this.count = 0
+        }
+        public readonly attempt = (evt: wts.SocketClose) => {
+            if (this.count < this.times) {
+                setTimeout(() => this.onAttempt(evt), this.random(this.count++, this.delay));
+            } else {
+                this.onFailed(evt)
+            }
+        }
+    }
+    export class Client {
+        private pingTimer: number = null;
+        private pingTimeout: number = null;
+        protected readonly socket: Socket
+        constructor() {
+            this.socket = new Socket(this.url)
+            this.socket.onopen = (evt, isRetry) => {
+                this.log('Socket Client 连接已打开！', evt);
+                this.onOpened(evt, isRetry)
+            }
+            this.socket.onerror = evt => {
+                this.log('Socket Client 连接打开失败，请检查！', evt);
+                this.onError(evt)
+            }
+            this.socket.onmessage = evt => {
+                this.log('Socket Client 收到消息：', evt);
+                if (typeof evt.data === "string") {
+                    try {
+                        this.handle(JSON.parse(evt.data))
+                    } catch (error) {
+                        this.log(error)
+                    }
+                }
+            }
+            this.socket.onclose = evt => {
+                this.log('Socket Client  已关闭！', evt);
+                this.stopPing()
+                this.onClosed(evt)
+            }
+            this.socket.onfailed = (etv) => {
+                this.log('Socket Client 重连超时！')
+                this.stopPing()
+                this.onFailed(etv)
+            }
+        }
+        private readonly pingFunc = () => {
+            if (!this.isConnected) return
+            if (this.pingTimeout) return
+            let data = "{\"type\":\"PING\"}"
+            this.socket.send(data)
+            this.pingTimeout = setTimeout(() => {
+                this.log("ping 超时!");
+                this.pingTimeout = null;
+                this.socket.close(1006)
+            }, 3 * 1000);
+        }
+        private log(msg: any, other?: any) {
+            if (this.isDebug) {
+                console.log(msg, other || '')
+            }
+        }
+        private readonly handle = (msg: any) => {
+            if (msg.type == "PONG") {
+                if (this.pingTimeout) {
+                    clearTimeout(this.pingTimeout)
+                    this.pingTimeout = null
+                }
+                this.log("收到pong消息：", msg);
+            } else {
+                this.onMessage(msg)
+            }
+        }
+        /**
+         * @default 30
+         * @description the heartbeat interal
+         */
+        protected pingInterval: number = 30
+
+        protected readonly startPing = () => {
+            if (this.pingTimer) return;
+            this.pingTimer = setInterval(() => this.pingFunc(), 1000 * this.pingInterval);
+        }
+        protected readonly stopPing = () => {
+            if (!this.pingTimer) return;
+            clearInterval(this.pingTimer)
+            this.pingTimer = null
+        }
+        /**
+         * subclass must impl this method to resolve url
+         * you must provide connect url 
+         */
+        protected get url(): string {
+            throw new Error('you must provide url like wss://xxx.com ')
+        }
+        /**
+         * @default true
+         * @description print debug info or not
+         */
+        protected get isDebug(): boolean {
+            return true
+        }
+        /** call when some error occur */
+        protected onError(res: wts.SocketError) {
+
+        }
+        /** call when socket closed .  */
+        protected onOpened(res: any, isRetry: boolean) {
+
+        }
+        /** call when socket closed */
+        protected onClosed(res: wts.SocketClose) {
+
+        }
+        /** call when socket retry failed */
+        protected onFailed(res: wts.SocketClose) {
+
+        }
+        /** call when get some message */
+        protected onMessage(msg: any) {
+
+        }
+        public get isConnected(): boolean {
+            return this.socket.status === 'opened'
+        }
+        public get isConnecting(): boolean {
+            return this.socket.status === 'opening'
+        }
+        public readonly start = () => {
+            if (this.isConnected || this.isConnecting || this.socket.isRetrying) {
+                return
+            }
+            this.socket.retry.reset()
+            this.socket.retryable = true
+            this.socket.open()
+            this.startPing()
+        }
+        public readonly stop = () => {
+            this.socket.retryable = false
+            this.socket.close(1000)
+            this.stopPing()
+        }
+    }
+}
+export interface Listener {
+    onMessage: (json: any, isOffline: boolean) => void;
+}
+export class SocketClient {
     private _isConnected: boolean = false;
     private _isConnecting: boolean = false;
     private listeners: Set<Listener>;
@@ -420,7 +682,7 @@ export class Socket {
      * @default impl is return res.code === 4001 || res.code === 4002,4001,4002 is the default auth fail code 
      * @description If get true socket will not attempt again. At this time didLogout will be call!
      */
-    protected isAuthClose(res: wts.SocketCloser): boolean {
+    protected isAuthClose(res: wts.SocketClose): boolean {
         return res.code === 4001 || res.code === 4002
     }
     /** the status observer . It will be call when socket never attemped */
@@ -435,7 +697,7 @@ export class Socket {
      * @see isAuthClose
      * @param res logout res 
      */
-    protected didLogout(res: wts.SocketCloser) {
+    protected didLogout(res: wts.SocketClose) {
 
     }
     /** call when some error opend */
@@ -548,24 +810,17 @@ export namespace pop {
         wx.hideLoading()
     }
 }
-export namespace storage {
-    export interface IMetaClass<T> {
-        new(json?: any): T
-    }
+export namespace orm {
     const stored: any = {}
     function awake<T>(cls: IMetaClass<T>, json: any) {
-        if (!json) {
-            return undefined
-        }
+        if (!json) return undefined
         const obj = new cls()
         Object.assign(obj, json)
         const fields = cls['sg_fields']
         if (fields) {
             for (const field in fields) {
                 const subjson = obj[field]
-                if (!subjson) {
-                    continue
-                }
+                if (!subjson) continue
                 if (Array.isArray(subjson)) {
                     obj[field] = (subjson as any[]).map(json => {
                         return awake(fields[field], json)
@@ -609,18 +864,14 @@ export namespace storage {
      * @throws did't mark error
      */
     export const save = <T>(model: T) => {
-        if (!model) {
-            return
-        }
+        if (!model) return
         const classkey = model.constructor['sg_clsname']
         const primary = model.constructor['sg_primary']
         if (!classkey || !primary) {
             throw new Error(`The Class:${model.constructor.name} did\'t  mark with decorate @store(clsname,primary)`)
         }
         const id = model[primary]
-        if (id === undefined || id === null) {
-            return
-        }
+        if (id === undefined || id === null) return
         const key = classkey + "." + id
         const keys: any = wx.getStorageSync(classkey) || {}
         keys[key] = ''
@@ -638,9 +889,7 @@ export namespace storage {
         if (!classkey) {
             throw new Error(`The Class:${cls.name} did\'t  mark with decorate @store(clsname,primary)`)
         }
-        if (!id) {
-            return
-        }
+        if (!id) return
         const json = wx.getStorageSync(classkey + "." + id)
         return awake(cls, json)
     }
@@ -655,9 +904,7 @@ export namespace storage {
             throw new Error(`The Class:${cls.name} did\'t  mark with decorate @store(clsname,primary)`)
         }
         const keys = wx.getStorageSync(classkey)
-        if (!keys) {
-            return [];
-        }
+        if (!keys) return []
         const result: T[] = []
         for (const key in keys) {
             const obj = awake(cls, wx.getStorageSync(key))
