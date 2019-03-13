@@ -275,10 +275,11 @@ export namespace Network {
     }
 }
 export class Socket {
+    private task: wts.SocketTask
     private _status: Socket.Status = 'closed'
     private _retrying: boolean = false
-    private url: string
-    private task: wts.SocketTask
+
+    public url: string
     public retryable: boolean = false
     public readonly retry: Socket.Retry
     public onopen: (evt: Event, isRetry: boolean) => void
@@ -350,7 +351,6 @@ export class Socket {
     public get isRetrying() { return this._retrying }
 }
 export namespace Socket {
-    export type Status = 'closed' | 'closing' | 'opened' | 'opening'
     export class Retry {
         /**
          * @description base attempt delay time @default 100 milliscond
@@ -382,12 +382,17 @@ export namespace Socket {
             }
         }
     }
+    export type Status = 'closed' | 'closing' | 'opened' | 'opening'
+    export interface Listener {
+        onMessage: (json: any, isOffline: boolean) => void;
+    }
     export class Client {
         private pingTimer: number = null;
         private pingTimeout: number = null;
+        private listeners: Set<Listener> = new Set<Listener>()
         protected readonly socket: Socket
         constructor() {
-            this.socket = new Socket(this.url)
+            this.socket = new Socket('')
             this.socket.onopen = (evt, isRetry) => {
                 this.log('Socket Client 连接已打开！', evt);
                 this.onOpened(evt, isRetry)
@@ -400,7 +405,7 @@ export namespace Socket {
                 this.log('Socket Client 收到消息：', evt);
                 if (typeof evt.data === "string") {
                     try {
-                        this.handle(JSON.parse(evt.data))
+                        this.handle(JSON.parse(evt.data), true)
                     } catch (error) {
                         this.log(error)
                     }
@@ -408,6 +413,9 @@ export namespace Socket {
             }
             this.socket.onclose = evt => {
                 this.log('Socket Client  已关闭！', evt);
+                if (this.isAuthFail(evt)) {
+                    this.onAuthFail()
+                }
                 this.stopPing()
                 this.onClosed(evt)
             }
@@ -433,7 +441,7 @@ export namespace Socket {
                 console.log(msg, other || '')
             }
         }
-        private readonly handle = (msg: any) => {
+        protected readonly handle = (msg: any, offline: boolean) => {
             if (msg.type == "PONG") {
                 if (this.pingTimeout) {
                     clearTimeout(this.pingTimeout)
@@ -441,7 +449,8 @@ export namespace Socket {
                 }
                 this.log("收到pong消息：", msg);
             } else {
-                this.onMessage(msg)
+                this.onMessage(msg, offline)
+                this.listeners.forEach(ele => ele.onMessage(msg, offline))
             }
         }
         /**
@@ -459,19 +468,25 @@ export namespace Socket {
             clearInterval(this.pingTimer)
             this.pingTimer = null
         }
-        /**
-         * subclass must impl this method to resolve url
-         * you must provide connect url 
-         */
-        protected get url(): string {
-            throw new Error('you must provide url like wss://xxx.com ')
+        protected setURL(url: string) {
+            this.socket.url = url
         }
         /**
-         * @default true
-         * @description print debug info or not
+         * @description print debug info or not @default true
          */
         protected get isDebug(): boolean {
             return true
+        }
+        /** tell me your login status */
+        protected get isLogin(): boolean {
+            return false
+        }
+        /** 
+         * @default impl is return res.code === 4001 || res.code === 4002,4001,4002 is the default auth fail code 
+         * @description If get true socket will not attempt again. At this time onAuthFail will be call!
+         */
+        protected isAuthFail(res: wts.SocketClose): boolean {
+            return res.code === 4001 || res.code === 4002
         }
         /** call when some error occur */
         protected onError(res: wts.SocketError) {
@@ -490,9 +505,14 @@ export namespace Socket {
 
         }
         /** call when get some message */
-        protected onMessage(msg: any) {
+        protected onMessage(msg: any, offline: boolean) {
 
         }
+        /** call when isAuthFail is true when close */
+        protected onAuthFail() {
+
+        }
+
         public get isConnected(): boolean {
             return this.socket.status === 'opened'
         }
@@ -500,9 +520,8 @@ export namespace Socket {
             return this.socket.status === 'opening'
         }
         public readonly start = () => {
-            if (this.isConnected || this.isConnecting || this.socket.isRetrying) {
-                return
-            }
+            if (!this.isLogin) return
+            if (this.isConnected || this.isConnecting || this.socket.isRetrying) return
             this.socket.retry.reset()
             this.socket.retryable = true
             this.socket.open()
@@ -513,15 +532,26 @@ export namespace Socket {
             this.socket.close(1000)
             this.stopPing()
         }
+        /**
+         *@description add an listener
+         */
+        public readonly addListener = (listener: Socket.Listener) => {
+            this.listeners.add(listener)
+        }
+        /**
+         * @description remove the listener
+         */
+        public readonly removeListener = (listener: Socket.Listener) => {
+            this.listeners.delete(listener);
+        }
     }
 }
-export interface Listener {
-    onMessage: (json: any, isOffline: boolean) => void;
-}
+
 export class SocketClient {
+    private _url: string
     private _isConnected: boolean = false;
     private _isConnecting: boolean = false;
-    private listeners: Set<Listener>;
+    private listeners: Set<Socket.Listener> = new Set()
     private timer: number = null;
     private pingTimeout: number = null;
     private task: wts.SocketTask
@@ -534,13 +564,13 @@ export class SocketClient {
             this.log('WebSocket连接已打开！', res);
             this._isConnecting = false;
             this._isConnected = true;
-            this.didConnected()
+            this.onOpened(res)
         })
         this.task.onError(res => {
             this.log('WebSocket连接打开失败，请检查！', res);
             this._isConnected = false;
             this._isConnecting = false;
-            this.didError(new Error(res.errMsg))
+            this.onError(res)
         })
         this.task.onMessage(res => {
             if (typeof res.data === "string") {
@@ -554,9 +584,9 @@ export class SocketClient {
         })
         this.task.onClose(res => {
             this.log('WebSocket 已关闭！', res);
-            if (this.isAuthClose(res)) {
+            if (this.isAuthFail(res)) {
                 this.stop()
-                this.didLogout(res)
+                this.onAuthFail()
                 return
             }
             this.affterClose()
@@ -583,7 +613,7 @@ export class SocketClient {
     private attempt = () => {
         if (this.attemptTimes > this.maxAttemptTimes) {
             pop.alert('网络连接失败，请重试', () => this.reattemp())
-            this.disConnected()
+            this.onFailed()
             return
         }
         this.connect()
@@ -622,7 +652,7 @@ export class SocketClient {
             return
         }
         this._isConnecting = true;
-        this.task = wx.connectSocket({ url: this.url });
+        this.task = wx.connectSocket({ url: this._url });
         this.addObserve()
         this.attemptTimes += 1;
     }
@@ -640,12 +670,10 @@ export class SocketClient {
             this.log("收到pong消息：", msg);
             return
         }
+        this.onMessage(msg, isOffline)
         this.listeners.forEach(ele => {
             ele.onMessage(msg, isOffline);
         });
-    }
-    constructor() {
-        this.listeners = new Set<Listener>()
     }
     /**
      * @default 10
@@ -661,8 +689,8 @@ export class SocketClient {
      * subclass must impl this method to resolve url
      * you must provide connect url 
      */
-    protected get url(): string {
-        throw new Error('you must provide url like wss://xxx.com ')
+    protected setURL(url: string) {
+        this._url = url
     }
     /**
      * @default false
@@ -682,26 +710,31 @@ export class SocketClient {
      * @default impl is return res.code === 4001 || res.code === 4002,4001,4002 is the default auth fail code 
      * @description If get true socket will not attempt again. At this time didLogout will be call!
      */
-    protected isAuthClose(res: wts.SocketClose): boolean {
+    protected isAuthFail(res: wts.SocketClose): boolean {
         return res.code === 4001 || res.code === 4002
     }
-    /** the status observer . It will be call when socket never attemped */
-    protected didConnected() {
+    /** call when some error occur */
+    protected onError(res: wts.SocketError) {
 
     }
-    /** call when socket opend */
-    protected disConnected() {
+    /** call when socket closed .  */
+    protected onOpened(res: any) {
 
     }
-    /**
-     * @see isAuthClose
-     * @param res logout res 
-     */
-    protected didLogout(res: wts.SocketClose) {
+    /** call when socket closed */
+    protected onClosed(res: wts.SocketClose) {
 
     }
-    /** call when some error opend */
-    protected didError(error: Error) {
+    /** call when socket retry failed */
+    protected onFailed() {
+
+    }
+    /** call when get some message */
+    protected onMessage(msg: any, isOffline: boolean) {
+
+    }
+    /** call when isAuthFail is true when close */
+    protected onAuthFail() {
 
     }
     public get isConnected(): boolean {
@@ -740,13 +773,13 @@ export class SocketClient {
     /**
      *@description add an listener
      */
-    public readonly addListener = (listener: Listener) => {
+    public readonly addListener = (listener: Socket.Listener) => {
         this.listeners.add(listener)
     }
     /**
      * @description remove the listener
      */
-    public readonly removeListener = (listener: Listener) => {
+    public readonly removeListener = (listener: Socket.Listener) => {
         this.listeners.delete(listener);
     }
 }
