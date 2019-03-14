@@ -412,7 +412,7 @@ exports.Socket = Socket;
                     return;
                 var data = "{\"type\":\"PING\"}";
                 _this.socket.send(data);
-                console.log('发送 PONG:', data);
+                console.log('发送 PING:', data);
                 _this.timeout = setTimeout(function () {
                     console.log('PING 超时');
                     _this.timeout = null;
