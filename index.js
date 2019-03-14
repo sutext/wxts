@@ -97,7 +97,6 @@ function widget(inital) {
     };
 }
 exports.widget = widget;
-wx.setNavigationBarColor;
 var Network = /** @class */ (function () {
     function Network() {
         var _this = this;
@@ -124,7 +123,7 @@ var Network = /** @class */ (function () {
                             reject(error);
                         }
                     },
-                    fail: reject
+                    fail: function (e) { return reject(new Error(e.errMsg)); }
                 });
             });
         };

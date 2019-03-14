@@ -32,7 +32,7 @@ export declare class IPage<D = any> implements wx.IPage {
     readonly selectAllComponents: () => any[];
     readonly createSelectorQuery: () => wx.SelectorQuery;
     readonly getRelationNodes: () => wx.NodesRef;
-    readonly createIntersectionObserver: (options?: wx.CreateIntersectionObserverOption) => wx.IntersectionObserver;
+    readonly createIntersectionObserver: (options?: wx.IntersectionOptions) => wx.IntersectionObserver;
 }
 /**
  * @default undefined
@@ -40,7 +40,7 @@ export declare class IPage<D = any> implements wx.IPage {
  * @description it will overwrite global data if possible
  */
 export declare function page(inital?: InitalData): (target: new () => IPage<any>) => void;
-export declare class Widget<D = any> {
+export declare class Widget<D = any> implements wx.IComponent {
     [other: string]: any;
     readonly data: D & InitalData;
     /**
@@ -60,7 +60,7 @@ export declare class Widget<D = any> {
     readonly selectAllComponents: () => any[];
     readonly createSelectorQuery: () => wx.SelectorQuery;
     readonly getRelationNodes: () => wx.NodesRef;
-    readonly createIntersectionObserver: (options?: wx.CreateIntersectionObserverOption) => wx.IntersectionObserver;
+    readonly createIntersectionObserver: (options?: wx.IntersectionOptions) => wx.IntersectionObserver;
 }
 /**
  * @default undefined
@@ -68,7 +68,7 @@ export declare class Widget<D = any> {
  */
 export declare function widget(inital?: InitalData): (target: new () => Widget<any>) => void;
 /**
- * the meta constructor of netowrk and storage
+ * @description the meta constructor of netowrk and storage
  */
 export interface IMetaClass<T> {
     new (json?: any): T;
@@ -85,7 +85,7 @@ export declare class Network {
      * @description you must provid an resover and return you business object
      * @param resp the http response object
      */
-    protected resolve(resp: wx.RequestResponse): any;
+    protected resolve(resp: wx.HttpResponse): any;
     readonly upload: (file: Network.Upload, options?: Network.Options) => Promise<any>;
     readonly anyreq: <T>(req: Network.Request<T>) => Promise<T>;
     readonly objreq: <T>(req: Network.Request<T>) => Promise<T>;
@@ -251,7 +251,7 @@ export declare namespace Socket {
          */
         protected buildurl(): string;
         /** call when some error occur @override point */
-        protected onError(res: wx.GeneralCallbackResult): void;
+        protected onError(res: wx.SocketError): void;
         /** call when socket closed . @override point */
         protected onOpened(res: any, isRetry: boolean): void;
         /**
@@ -325,7 +325,7 @@ export declare class SocketClient {
      */
     protected isAuthFail(res: wx.SocketClose): boolean;
     /** call when some error occur */
-    protected onError(res: wx.GeneralCallbackResult): void;
+    protected onError(res: wx.SocketError): void;
     /** call when socket closed .  */
     protected onOpened(res: any): void;
     /** call when socket closed */

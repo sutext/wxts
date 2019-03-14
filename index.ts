@@ -51,7 +51,7 @@ export class IPage<D=any> implements wx.IPage {
     public readonly selectAllComponents: () => any[]
     public readonly createSelectorQuery: () => wx.SelectorQuery
     public readonly getRelationNodes: () => wx.NodesRef
-    public readonly createIntersectionObserver: (options?: wx.CreateIntersectionObserverOption) => wx.IntersectionObserver
+    public readonly createIntersectionObserver: (options?: wx.IntersectionOptions) => wx.IntersectionObserver
 }
 /**
  * @default undefined
@@ -87,7 +87,7 @@ export class Widget<D=any> implements wx.IComponent {
     public readonly selectAllComponents: () => any[]
     public readonly createSelectorQuery: () => wx.SelectorQuery;
     public readonly getRelationNodes: () => wx.NodesRef
-    public readonly createIntersectionObserver: (options?: wx.CreateIntersectionObserverOption) => wx.IntersectionObserver
+    public readonly createIntersectionObserver: (options?: wx.IntersectionOptions) => wx.IntersectionObserver
 }
 const keys = ['properties', 'data', 'behaviors', 'created', 'attached', 'ready', 'moved', 'detached', 'relations', 'externalClasses']
 /**
@@ -148,7 +148,7 @@ export class Network {
      * @description you must provid an resover and return you business object
      * @param resp the http response object
      */
-    protected resolve(resp: wx.RequestResponse): any {
+    protected resolve(resp: wx.HttpResponse): any {
         throw new Error('Network.resolve must be implement')
     }
     public readonly upload = (file: Network.Upload, options?: Network.Options): Promise<any> => {
@@ -171,7 +171,7 @@ export class Network {
                         reject(error)
                     }
                 },
-                fail: reject
+                fail: e => reject(new Error(e.errMsg))
             })
         })
     }
@@ -332,7 +332,7 @@ export class Socket {
             this.onfailed(e)
         }
     }
-    private onOpenCallback(res: wx.OnOpenCallbackResult) {
+    private onOpenCallback(res: any) {
         this._status = 'opened'
         if (typeof this.onopen === 'function') {
             this.onopen(res, this._retrying)
@@ -551,7 +551,7 @@ export namespace Socket {
          */
         protected buildurl(): string { return '' }
         /** call when some error occur @override point */
-        protected onError(res: wx.GeneralCallbackResult) { }
+        protected onError(res: wx.SocketError) { }
         /** call when socket closed . @override point */
         protected onOpened(res: any, isRetry: boolean) { }
         /** 
@@ -775,7 +775,7 @@ export class SocketClient {
         return res.code === 4001 || res.code === 4002
     }
     /** call when some error occur */
-    protected onError(res: wx.GeneralCallbackResult) {
+    protected onError(res: wx.SocketError) {
 
     }
     /** call when socket closed .  */
