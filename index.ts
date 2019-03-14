@@ -119,7 +119,6 @@ export function widget(inital?: InitalData) {
         const global = {}
         Object.assign(global, globalData, inital, result.data)
         Object.assign(result, { data: global })
-
         Component(result)
     }
 }
@@ -129,7 +128,10 @@ export function widget(inital?: InitalData) {
 export interface IMetaClass<T> {
     new(json?: any): T
 }
-
+export interface IObserver {
+    readonly target: any
+    readonly callback: Function
+}
 export class Network {
     protected get headers(): any {
         return {}
@@ -160,7 +162,7 @@ export class Network {
                 header: this.headers,
                 url: this.url(file.path),
                 filePath: file.file,
-                success: res => {
+                complete: res => {
                     wx.hideNavigationBarLoading()
                     if (options && options.loading) pop.idling()
                     try {
@@ -171,7 +173,6 @@ export class Network {
                         reject(error)
                     }
                 },
-                fail: e => reject(new Error(e.errMsg))
             })
         })
     }
@@ -195,7 +196,7 @@ export class Network {
                 header: this.headers,
                 data: data,
                 method: options && options.method ? options.method : this.method,
-                success: result => {
+                complete: result => {
                     wx.hideNavigationBarLoading()
                     if (options && options.loading) pop.idling()
                     try {
@@ -207,8 +208,7 @@ export class Network {
                     } catch (error) {
                         reject(error)
                     }
-                },
-                fail: reject
+                }
             })
         });
     }
@@ -221,7 +221,7 @@ export class Network {
                 header: this.headers,
                 data: data,
                 method: options && options.method ? options.method : this.method,
-                success: result => {
+                complete: result => {
                     wx.hideNavigationBarLoading()
                     if (options && options.loading) pop.idling()
                     try {
@@ -234,7 +234,6 @@ export class Network {
                         reject(error)
                     }
                 },
-                fail: reject
             })
         });
     }
@@ -247,7 +246,7 @@ export class Network {
                 header: this.headers,
                 data: data,
                 method: options && options.method ? options.method : this.method,
-                success: result => {
+                complete: result => {
                     wx.hideNavigationBarLoading()
                     if (options && options.loading) pop.idling()
                     try {
@@ -260,8 +259,7 @@ export class Network {
                     } catch (error) {
                         reject(error)
                     }
-                },
-                fail: reject
+                }
             })
         });
     }
@@ -313,7 +311,7 @@ export class Socket {
     private readonly buildurl: () => string
     public retryable: boolean = false
     public readonly retry: Socket.Retry
-    public onopen: (evt: any, isRetry: boolean) => void
+    public onopen: (header: any, isRetry: boolean) => void
     public onclose: (evt: wx.SocketClose) => void
     public onerror: (evt: wx.SocketError) => void
     public onfailed: (evt: wx.SocketClose) => void
@@ -332,10 +330,10 @@ export class Socket {
             this.onfailed(e)
         }
     }
-    private onOpenCallback(res: any) {
+    private onOpenCallback(header: any) {
         this._status = 'opened'
         if (typeof this.onopen === 'function') {
-            this.onopen(res, this._retrying)
+            this.onopen(header, this._retrying)
         }
         this._retrying = false
     }
@@ -386,16 +384,12 @@ export class Socket {
 export namespace Socket {
     export type Status = 'closed' | 'closing' | 'opened' | 'opening'
     export type Events = keyof Observers
-    export interface Observer {
-        readonly target: any
-        readonly callback: Function
-    }
     export class Observers {
-        readonly open: Observer[] = []
-        readonly error: Observer[] = []
-        readonly close: Observer[] = []
-        readonly failed: Observer[] = []
-        readonly message: Observer[] = []
+        readonly open: IObserver[] = []
+        readonly error: IObserver[] = []
+        readonly close: IObserver[] = []
+        readonly failed: IObserver[] = []
+        readonly message: IObserver[] = []
     }
     /**
      * @description A retry machine for web socket
@@ -438,12 +432,15 @@ export namespace Socket {
             }
         }
     }
-    class Ping {
+    export class Ping {
         private socket: Socket
         private timer: number = null
         private timeout: number = null
         private readonly allow: boolean
-        public interval: number = 3000
+        /**
+         * @description desc the time interval of ping @default 30s
+         */
+        public interval: number = 30
         constructor(socket: Socket, allow: boolean = true) {
             this.allow = allow
             this.socket = socket
@@ -468,7 +465,7 @@ export namespace Socket {
         }
         public readonly start = () => {
             if (!this.allow || this.timer) return;
-            this.timer = setInterval(this.send.bind(this), this.interval);
+            this.timer = setInterval(this.send.bind(this), this.interval * 30);
         }
         public readonly stop = () => {
             if (!this.allow || !this.timer) return;

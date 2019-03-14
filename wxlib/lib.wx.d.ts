@@ -2852,7 +2852,7 @@ declare namespace wx {
          * @since 2.1.0
          * @param textStyle 下拉背景字体 loading 图的样式
          */
-        setBackgroundTextStyle(opt: { textStyle: 'dark' | 'light' } & BaseParams)
+        setBackgroundTextStyle(opt: { textStyle: 'dark' | 'light' } & BaseParams): void
         /**
          * @since 2.1.0 设置背景色
          */

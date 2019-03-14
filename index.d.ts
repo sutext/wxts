@@ -73,6 +73,10 @@ export declare function widget(inital?: InitalData): (target: new () => Widget<a
 export interface IMetaClass<T> {
     new (json?: any): T;
 }
+export interface IObserver {
+    readonly target: any;
+    readonly callback: Function;
+}
 export declare class Network {
     protected readonly headers: any;
     protected readonly method: Network.Method;
@@ -141,7 +145,7 @@ export declare class Socket {
     private readonly buildurl;
     retryable: boolean;
     readonly retry: Socket.Retry;
-    onopen: (evt: any, isRetry: boolean) => void;
+    onopen: (header: any, isRetry: boolean) => void;
     onclose: (evt: wx.SocketClose) => void;
     onerror: (evt: wx.SocketError) => void;
     onfailed: (evt: wx.SocketClose) => void;
@@ -162,16 +166,12 @@ export declare class Socket {
 export declare namespace Socket {
     type Status = 'closed' | 'closing' | 'opened' | 'opening';
     type Events = keyof Observers;
-    interface Observer {
-        readonly target: any;
-        readonly callback: Function;
-    }
     class Observers {
-        readonly open: Observer[];
-        readonly error: Observer[];
-        readonly close: Observer[];
-        readonly failed: Observer[];
-        readonly message: Observer[];
+        readonly open: IObserver[];
+        readonly error: IObserver[];
+        readonly close: IObserver[];
+        readonly failed: IObserver[];
+        readonly message: IObserver[];
     }
     /**
      * @description A retry machine for web socket
@@ -206,6 +206,9 @@ export declare namespace Socket {
         private timer;
         private timeout;
         private readonly allow;
+        /**
+         * @description desc the time interval of ping @default 30s
+         */
         interval: number;
         constructor(socket: Socket, allow?: boolean);
         private readonly send;

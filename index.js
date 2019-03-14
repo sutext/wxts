@@ -110,7 +110,7 @@ var Network = /** @class */ (function () {
                     header: _this.headers,
                     url: _this.url(file.path),
                     filePath: file.file,
-                    success: function (res) {
+                    complete: function (res) {
                         wx.hideNavigationBarLoading();
                         if (options && options.loading)
                             pop.idling();
@@ -123,7 +123,6 @@ var Network = /** @class */ (function () {
                             reject(error);
                         }
                     },
-                    fail: function (e) { return reject(new Error(e.errMsg)); }
                 });
             });
         };
@@ -150,7 +149,7 @@ var Network = /** @class */ (function () {
                     header: _this.headers,
                     data: data,
                     method: options && options.method ? options.method : _this.method,
-                    success: function (result) {
+                    complete: function (result) {
                         wx.hideNavigationBarLoading();
                         if (options && options.loading)
                             pop.idling();
@@ -164,8 +163,7 @@ var Network = /** @class */ (function () {
                         catch (error) {
                             reject(error);
                         }
-                    },
-                    fail: reject
+                    }
                 });
             });
         };
@@ -179,7 +177,7 @@ var Network = /** @class */ (function () {
                     header: _this.headers,
                     data: data,
                     method: options && options.method ? options.method : _this.method,
-                    success: function (result) {
+                    complete: function (result) {
                         wx.hideNavigationBarLoading();
                         if (options && options.loading)
                             pop.idling();
@@ -194,7 +192,6 @@ var Network = /** @class */ (function () {
                             reject(error);
                         }
                     },
-                    fail: reject
                 });
             });
         };
@@ -208,7 +205,7 @@ var Network = /** @class */ (function () {
                     header: _this.headers,
                     data: data,
                     method: options && options.method ? options.method : _this.method,
-                    success: function (result) {
+                    complete: function (result) {
                         wx.hideNavigationBarLoading();
                         if (options && options.loading)
                             pop.idling();
@@ -224,8 +221,7 @@ var Network = /** @class */ (function () {
                         catch (error) {
                             reject(error);
                         }
-                    },
-                    fail: reject
+                    }
                 });
             });
         };
@@ -304,10 +300,10 @@ var Socket = /** @class */ (function () {
             this.onfailed(e);
         }
     };
-    Socket.prototype.onOpenCallback = function (res) {
+    Socket.prototype.onOpenCallback = function (header) {
         this._status = 'opened';
         if (typeof this.onopen === 'function') {
-            this.onopen(res, this._retrying);
+            this.onopen(header, this._retrying);
         }
         this._retrying = false;
     };
@@ -405,7 +401,10 @@ exports.Socket = Socket;
             var _this = this;
             this.timer = null;
             this.timeout = null;
-            this.interval = 3000;
+            /**
+             * @description desc the time interval of ping @default 30s
+             */
+            this.interval = 30;
             this.send = function () {
                 if (!_this.allow || _this.timeout)
                     return;
@@ -430,7 +429,7 @@ exports.Socket = Socket;
             this.start = function () {
                 if (!_this.allow || _this.timer)
                     return;
-                _this.timer = setInterval(_this.send.bind(_this), _this.interval);
+                _this.timer = setInterval(_this.send.bind(_this), _this.interval * 30);
             };
             this.stop = function () {
                 if (!_this.allow || !_this.timer)
@@ -443,6 +442,7 @@ exports.Socket = Socket;
         }
         return Ping;
     }());
+    Socket.Ping = Ping;
     /**
      * @description socket client wrapped on Socket
      * @description you must inherit this class to implements your logic
