@@ -365,9 +365,9 @@ exports.Socket = Socket;
              */
             this.delay = 100;
             /**
-             * @description the max retry times when retrying @default 5
+             * @description the max retry times when retrying @default 8
              */
-            this.times = 5;
+            this.times = 8;
             this.count = 0; //已经尝试次数
             /**
              * @description reset retry times counter
@@ -429,7 +429,7 @@ exports.Socket = Socket;
             this.start = function () {
                 if (!_this.allow || _this.timer)
                     return;
-                _this.timer = setInterval(_this.send.bind(_this), _this.interval * 30);
+                _this.timer = setInterval(_this.send.bind(_this), _this.interval * 1000);
             };
             this.stop = function () {
                 if (!_this.allow || !_this.timer)

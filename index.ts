@@ -402,9 +402,9 @@ export namespace Socket {
          */
         public delay: number = 100
         /**
-         * @description the max retry times when retrying @default 5
+         * @description the max retry times when retrying @default 8
          */
-        public times: number = 5
+        public times: number = 8
         private count: number = 0//已经尝试次数
         private readonly onAttempt: (evt: wx.SocketClose) => void
         private readonly onFailed: (evt: wx.SocketClose) => void
@@ -465,7 +465,7 @@ export namespace Socket {
         }
         public readonly start = () => {
             if (!this.allow || this.timer) return;
-            this.timer = setInterval(this.send.bind(this), this.interval * 30);
+            this.timer = setInterval(this.send.bind(this), this.interval * 1000);
         }
         public readonly stop = () => {
             if (!this.allow || !this.timer) return;

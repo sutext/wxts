@@ -184,7 +184,7 @@ export declare namespace Socket {
          */
         delay: number;
         /**
-         * @description the max retry times when retrying @default 5
+         * @description the max retry times when retrying @default 8
          */
         times: number;
         private count;
