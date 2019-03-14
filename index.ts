@@ -108,8 +108,12 @@ export interface IMetaClass<T> {
 }
 
 export class Network {
-    protected headers: any = {}
-    protected method: wts.HttpMethod = 'POST'
+    protected get headers(): any {
+        return {}
+    }
+    protected get method(): wts.HttpMethod {
+        return 'POST'
+    }
     /**
      * @description resove relative uri to full url
      * @param path the relative uri
@@ -267,7 +271,7 @@ export namespace Network {
      * @param data the request data
      * @param options the request options @see Options
      */
-    export interface Request<T> {
+    export interface Request<T = any> {
         readonly path: string
         readonly meta: IMetaClass<T> | T
         readonly data?: any
@@ -278,8 +282,7 @@ export class Socket {
     private task: wts.SocketTask
     private _status: Socket.Status = 'closed'
     private _retrying: boolean = false
-
-    public url: string
+    private readonly buildurl: () => string
     public retryable: boolean = false
     public readonly retry: Socket.Retry
     public onopen: (evt: Event, isRetry: boolean) => void
@@ -287,8 +290,8 @@ export class Socket {
     public onerror: (evt: wts.SocketError) => void
     public onfailed: (evt: wts.SocketClose) => void
     public onmessage: (evt: wts.SocketMessage) => void
-    constructor(url: string) {
-        this.url = url
+    constructor(builder: () => string) {
+        this.buildurl = builder
         this.retry = new Socket.Retry(this.onRetryCallback.bind(this), this.onRetryFailed.bind(this))
     }
     private onRetryCallback() {
@@ -328,7 +331,9 @@ export class Socket {
         }
     }
     public readonly open = () => {
-        this.task = wx.connectSocket({ url: this.url })
+        if (this._status === 'opened' || this._status === 'opening' || typeof this.buildurl !== 'function') return
+        const url = this.buildurl()
+        this.task = wx.connectSocket({ url })
         this.task.onOpen(res => this.onOpenCallback(res))
         this.task.onError(res => this.onErrorCallback(res))
         this.task.onMessage(res => this.onMessageCallback(res))
@@ -336,7 +341,7 @@ export class Socket {
         this._status = 'opening'
     }
     public readonly close = (code?: number, reason?: string) => {
-        if (!this.task) return
+        if (!this.task || this._status === 'closed' || this._status === 'closing') return
         this._status = 'closing'
         this.task.close({
             code, reason, fail: () => {
@@ -351,6 +356,23 @@ export class Socket {
     public get isRetrying() { return this._retrying }
 }
 export namespace Socket {
+    export type Status = 'closed' | 'closing' | 'opened' | 'opening'
+    export type Events = keyof Observers
+    export interface Observer {
+        readonly target: any
+        readonly callback: Function
+    }
+    export class Observers {
+        readonly open: Observer[] = []
+        readonly error: Observer[] = []
+        readonly close: Observer[] = []
+        readonly failed: Observer[] = []
+        readonly message: Observer[] = []
+    }
+    /**
+     * @description A retry machine for web socket
+     * @description You can use it in any place where need retry machine
+     */
     export class Retry {
         /**
          * @description base attempt delay time @default 100 milliscond
@@ -371,9 +393,15 @@ export namespace Socket {
         private random(attempt: number, delay: number) {
             return Math.floor((0.5 + Math.random() * 0.5) * Math.pow(2, attempt) * delay);
         }
+        /**
+         * @description reset retry times counter
+         */
         public readonly reset = () => {
             this.count = 0
         }
+        /**
+         * @description use this method to trigger onAttempt action or onFailed action
+         */
         public readonly attempt = (evt: wts.SocketClose) => {
             if (this.count < this.times) {
                 setTimeout(() => this.onAttempt(evt), this.random(this.count++, this.delay));
@@ -382,167 +410,174 @@ export namespace Socket {
             }
         }
     }
-    export type Status = 'closed' | 'closing' | 'opened' | 'opening'
-    export interface Listener {
-        onMessage: (json: any, isOffline: boolean) => void;
-    }
-    export class Client {
-        private pingTimer: number = null;
-        private pingTimeout: number = null;
-        private listeners: Set<Listener> = new Set<Listener>()
-        protected readonly socket: Socket
-        constructor() {
-            this.socket = new Socket('')
-            this.socket.onopen = (evt, isRetry) => {
-                this.log('Socket Client 连接已打开！', evt);
-                this.onOpened(evt, isRetry)
-            }
-            this.socket.onerror = evt => {
-                this.log('Socket Client 连接打开失败，请检查！', evt);
-                this.onError(evt)
-            }
-            this.socket.onmessage = evt => {
-                this.log('Socket Client 收到消息：', evt);
-                if (typeof evt.data === "string") {
-                    try {
-                        this.handle(JSON.parse(evt.data), true)
-                    } catch (error) {
-                        this.log(error)
-                    }
-                }
-            }
-            this.socket.onclose = evt => {
-                this.log('Socket Client  已关闭！', evt);
-                if (this.isAuthFail(evt)) {
-                    this.onAuthFail()
-                }
-                this.stopPing()
-                this.onClosed(evt)
-            }
-            this.socket.onfailed = (etv) => {
-                this.log('Socket Client 重连超时！')
-                this.stopPing()
-                this.onFailed(etv)
-            }
+    class Ping {
+        private socket: Socket
+        private timer: number = null
+        private timeout: number = null
+        private readonly allow: boolean
+        public interval: number = 3000
+        constructor(socket: Socket, allow: boolean = true) {
+            this.allow = allow
+            this.socket = socket
         }
-        private readonly pingFunc = () => {
-            if (!this.isConnected) return
-            if (this.pingTimeout) return
-            let data = "{\"type\":\"PING\"}"
+        private readonly send = () => {
+            if (!this.allow || this.timeout) return
+            if (this.socket.status !== 'opened') return
+            const data = "{\"type\":\"PING\"}"
             this.socket.send(data)
-            this.pingTimeout = setTimeout(() => {
-                this.log("ping 超时!");
-                this.pingTimeout = null;
+            console.log('发送 PONG:', data);
+            this.timeout = setTimeout(() => {
+                console.log('PING 超时');
+                this.timeout = null;
                 this.socket.close(1006)
             }, 3 * 1000);
         }
-        private log(msg: any, other?: any) {
-            if (this.isDebug) {
-                console.log(msg, other || '')
-            }
+        public readonly receive = (msg: any) => {
+            console.log("收到 PONG", msg);
+            if (!this.allow || !this.timeout) return
+            clearTimeout(this.timeout)
+            this.timeout = null
         }
-        protected readonly handle = (msg: any, offline: boolean) => {
-            if (msg.type == "PONG") {
-                if (this.pingTimeout) {
-                    clearTimeout(this.pingTimeout)
-                    this.pingTimeout = null
-                }
-                this.log("收到pong消息：", msg);
-            } else {
-                this.onMessage(msg, offline)
-                this.listeners.forEach(ele => ele.onMessage(msg, offline))
-            }
+        public readonly start = () => {
+            if (!this.allow || this.timer) return;
+            this.timer = setInterval(this.send.bind(this), this.interval);
         }
+        public readonly stop = () => {
+            if (!this.allow || !this.timer) return;
+            clearInterval(this.timer)
+            this.timer = null
+        }
+    }
+    /**
+     * @description socket client wrapped on Socket
+     * @description you must inherit this class to implements your logic
+     * @implements client PING heartbeat mechanis
+     */
+    export abstract class Client {
         /**
-         * @default 30
-         * @description the heartbeat interal
+         * @description the ping mechanis
+         * @ping  use socket.send("{\"type\":\"PING\"}")
+         * @pong  receive message = "{\"type\":\"PONG\"}"
          */
-        protected pingInterval: number = 30
-
-        protected readonly startPing = () => {
-            if (this.pingTimer) return;
-            this.pingTimer = setInterval(() => this.pingFunc(), 1000 * this.pingInterval);
-        }
-        protected readonly stopPing = () => {
-            if (!this.pingTimer) return;
-            clearInterval(this.pingTimer)
-            this.pingTimer = null
-        }
-        protected setURL(url: string) {
-            this.socket.url = url
+        protected readonly ping: Ping
+        protected readonly socket: Socket
+        /**
+         * @notice all the observers will not be trigger 
+         * @notice you must trigger it yourself at overwrite point
+         */
+        protected readonly observers: Observers = new Observers()
+        constructor() {
+            this.socket = new Socket(() => this.buildurl())
+            this.ping = new Ping(this.socket, this.allowPing)
+            this.socket.onopen = (evt, isRetry) => {
+                console.log('Socket Client 连接已打开！', evt);
+                this.onOpened(evt, isRetry)
+            }
+            this.socket.onerror = evt => {
+                console.log('Socket Client 连接打开失败，请检查！', evt);
+                this.onError(evt)
+            }
+            this.socket.onmessage = evt => {
+                console.log('Socket Client 收到消息：', evt);
+                if (typeof evt.data !== "string") return
+                const msg = JSON.parse(evt.data)
+                if (msg.type == "PONG") {
+                    this.ping.receive(msg)
+                } else {
+                    this.onMessage(msg)
+                }
+            }
+            this.socket.onclose = evt => {
+                console.log('Socket Client  已关闭！', evt);
+                this.ping.stop()
+                this.onClosed(evt)
+            }
+            this.socket.onfailed = (etv) => {
+                console.log('Socket Client 重连超时！')
+                this.ping.stop()
+                this.onFailed(etv)
+            }
         }
         /**
-         * @description print debug info or not @default true
+         * @override print debug info or not @default true
          */
         protected get isDebug(): boolean {
             return true
         }
-        /** tell me your login status */
+        /**
+         * @description Tell me your login status @default false
+         * @description If false the start method will not work
+         */
         protected get isLogin(): boolean {
             return false
         }
-        /** 
-         * @default impl is return res.code === 4001 || res.code === 4002,4001,4002 is the default auth fail code 
-         * @description If get true socket will not attempt again. At this time onAuthFail will be call!
+        /**
+         * @description overwrite point set allow ping or not 
          */
-        protected isAuthFail(res: wts.SocketClose): boolean {
-            return res.code === 4001 || res.code === 4002
+        protected get allowPing(): boolean {
+            return true
         }
-        /** call when some error occur */
-        protected onError(res: wts.SocketError) {
-
+        /**
+         * @override point
+         * @description overwrite this method to provide url for web socket
+         */
+        protected buildurl(): string { return '' }
+        /** call when some error occur @override point */
+        protected onError(res: wts.SocketError) { }
+        /** call when socket closed . @override point */
+        protected onOpened(res: any, isRetry: boolean) { }
+        /** 
+         * @override point
+         * @description call when socket closed  
+         * @notice onFailed and onClosed only trigger one
+         */
+        protected onClosed(res: wts.SocketClose) { }
+        /** 
+         * @override point
+         * @description call when socket retry failed  
+         * @notice onFailed and onClosed only trigger one
+         */
+        protected onFailed(res: wts.SocketClose) { }
+        /** call when get some message @override point */
+        protected onMessage(msg: any) { }
+        public get status() {
+            return this.socket.status
         }
-        /** call when socket closed .  */
-        protected onOpened(res: any, isRetry: boolean) {
-
-        }
-        /** call when socket closed */
-        protected onClosed(res: wts.SocketClose) {
-
-        }
-        /** call when socket retry failed */
-        protected onFailed(res: wts.SocketClose) {
-
-        }
-        /** call when get some message */
-        protected onMessage(msg: any, offline: boolean) {
-
-        }
-        /** call when isAuthFail is true when close */
-        protected onAuthFail() {
-
-        }
-
         public get isConnected(): boolean {
             return this.socket.status === 'opened'
         }
-        public get isConnecting(): boolean {
-            return this.socket.status === 'opening'
+        public readonly on = (evt: Events, target: any, callback: Function) => {
+            const idx = this.observers[evt].findIndex(ele => ele.target === target)
+            if (idx === -1) {
+                this.observers[evt].push({ callback, target })
+            }
+        }
+        public readonly off = (evt: Events, target: any) => {
+            const idx = this.observers[evt].findIndex(ele => ele.target === target)
+            if (idx !== -1) {
+                this.observers[evt].splice(idx, 1)
+            }
+        }
+        public readonly stop = () => {
+            if (this.socket.status === 'closed' ||
+                this.socket.status === 'closing') {
+                return
+            }
+            this.socket.retryable = false
+            this.socket.close(1000)
+            this.ping.stop()
         }
         public readonly start = () => {
-            if (!this.isLogin) return
-            if (this.isConnected || this.isConnecting || this.socket.isRetrying) return
+            if (!this.isLogin ||
+                this.socket.isRetrying ||
+                this.socket.status === 'opened' ||
+                this.socket.status === 'opening') {
+                return
+            }
             this.socket.retry.reset()
             this.socket.retryable = true
             this.socket.open()
-            this.startPing()
-        }
-        public readonly stop = () => {
-            this.socket.retryable = false
-            this.socket.close(1000)
-            this.stopPing()
-        }
-        /**
-         *@description add an listener
-         */
-        public readonly addListener = (listener: Socket.Listener) => {
-            this.listeners.add(listener)
-        }
-        /**
-         * @description remove the listener
-         */
-        public readonly removeListener = (listener: Socket.Listener) => {
-            this.listeners.delete(listener);
+            this.ping.start()
         }
     }
 }
@@ -551,7 +586,7 @@ export class SocketClient {
     private _url: string
     private _isConnected: boolean = false;
     private _isConnecting: boolean = false;
-    private listeners: Set<Socket.Listener> = new Set()
+    private observers: Socket.Observers = new Socket.Observers()
     private timer: number = null;
     private pingTimeout: number = null;
     private task: wts.SocketTask
@@ -671,9 +706,7 @@ export class SocketClient {
             return
         }
         this.onMessage(msg, isOffline)
-        this.listeners.forEach(ele => {
-            ele.onMessage(msg, isOffline);
-        });
+        this.observers.message.forEach(ele => ele.callback.call(ele.target))
     }
     /**
      * @default 10
@@ -770,17 +803,17 @@ export class SocketClient {
         this.timer = null
         this.close()
     }
-    /**
-     *@description add an listener
-     */
-    public readonly addListener = (listener: Socket.Listener) => {
-        this.listeners.add(listener)
+    public readonly on = (evt: Socket.Events, target: any, callback: Function) => {
+        const idx = this.observers[evt].findIndex(ele => ele.target === target)
+        if (idx === -1) {
+            this.observers[evt].push({ callback, target })
+        }
     }
-    /**
-     * @description remove the listener
-     */
-    public readonly removeListener = (listener: Socket.Listener) => {
-        this.listeners.delete(listener);
+    public readonly off = (evt: Socket.Events, target: any) => {
+        const idx = this.observers[evt].findIndex(ele => ele.target === target)
+        if (idx !== -1) {
+            this.observers[evt].splice(idx, 1)
+        }
     }
 }
 export namespace pop {
