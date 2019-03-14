@@ -29,18 +29,29 @@ export function app(global?: InitalData) {
         App(trim(new target()))
     }
 }
-export class IPage<D=any>{
+export class IPage<D=any> implements wx.IPage {
     [other: string]: any
     public readonly options: any
     public readonly route: string
     public readonly data: D & InitalData
+    /**
+     * @description `setData` 函数用于将数据从逻辑层发送到视图层（异步），同时改变对应的 `this.data` 的值（同步）。
+     * @notice 直接修改 this.data 而不调用 this.setData 是无法改变页面的状态的，还会造成数据不一致
+     * @notice 仅支持设置可 JSON 化的数据。
+     * @notice 单次设置的数据不能超过1024kB，请尽量避免一次设置过多的数据。
+     * @notice 请不要把 data 中任何一项的 value 设为 `undefined` ，否则这一项将不被设置并可能遗留一些潜在问题。
+     * @description 这次要改变的数据
+     * @param data 以 `key: value` 的形式表示，将 `this.data` 中的 `key` 对应的值改变成 `value`。
+     * @param data 其中 `key` 可以以数据路径的形式给出，支持改变数组中的某一项或对象的某个属性，如 `array[2].message`，`a.b.c.d`，并且不需要在 this.data 中预先定义。
+     * @param callback setData引起的界面更新渲染完毕后的回调函数，最低基础库： `1.5.0` 
+     */
     public readonly setData: <K extends keyof D>(data: (Pick<D, K> | D), callback?: () => void) => void;
     public readonly triggerEvent: (name: string, detail?: any) => void
     public readonly selectComponent: (selector: string) => any
     public readonly selectAllComponents: () => any[]
-    public readonly createSelectorQuery: () => wts.SelectorQuery
-    public readonly getRelationNodes: () => wts.NodesRef
-    public readonly createIntersectionObserver: (options?: wts.IntersectionOptions) => wts.IntersectionObserver
+    public readonly createSelectorQuery: () => wx.SelectorQuery
+    public readonly getRelationNodes: () => wx.NodesRef
+    public readonly createIntersectionObserver: (options?: wx.CreateIntersectionObserverOption) => wx.IntersectionObserver
 }
 /**
  * @default undefined
@@ -56,16 +67,27 @@ export function page(inital?: InitalData) {
         Page(trim(param))
     }
 }
-export class Widget<D=any>{
+export class Widget<D=any> implements wx.IComponent {
     [other: string]: any
     public readonly data: D & InitalData
+    /**
+     * @description `setData` 函数用于将数据从逻辑层发送到视图层（异步），同时改变对应的 `this.data` 的值（同步）。
+     * @notice 直接修改 this.data 而不调用 this.setData 是无法改变页面的状态的，还会造成数据不一致
+     * @notice 仅支持设置可 JSON 化的数据。
+     * @notice 单次设置的数据不能超过1024kB，请尽量避免一次设置过多的数据。
+     * @notice 请不要把 data 中任何一项的 value 设为 `undefined` ，否则这一项将不被设置并可能遗留一些潜在问题。
+     * @description 这次要改变的数据
+     * @param data 以 `key: value` 的形式表示，将 `this.data` 中的 `key` 对应的值改变成 `value`。
+     * @param data 其中 `key` 可以以数据路径的形式给出，支持改变数组中的某一项或对象的某个属性，如 `array[2].message`，`a.b.c.d`，并且不需要在 this.data 中预先定义。
+     * @param callback setData引起的界面更新渲染完毕后的回调函数，最低基础库： `1.5.0` 
+     */
     public readonly setData: <K extends keyof D>(data: (Pick<D, K> | D), callback?: () => void) => void;
     public readonly triggerEvent: (name: string, detail?: any) => void
     public readonly selectComponent: (selector: string) => any
     public readonly selectAllComponents: () => any[]
-    public readonly createSelectorQuery: () => wts.SelectorQuery;
-    public readonly getRelationNodes: () => wts.NodesRef
-    public readonly createIntersectionObserver: (options?: wts.IntersectionOptions) => wts.IntersectionObserver
+    public readonly createSelectorQuery: () => wx.SelectorQuery;
+    public readonly getRelationNodes: () => wx.NodesRef
+    public readonly createIntersectionObserver: (options?: wx.CreateIntersectionObserverOption) => wx.IntersectionObserver
 }
 const keys = ['properties', 'data', 'behaviors', 'created', 'attached', 'ready', 'moved', 'detached', 'relations', 'externalClasses']
 /**
@@ -97,11 +119,12 @@ export function widget(inital?: InitalData) {
         const global = {}
         Object.assign(global, globalData, inital, result.data)
         Object.assign(result, { data: global })
+
         Component(result)
     }
 }
 /**
- * the meta constructor of netowrk and storage
+ * @description the meta constructor of netowrk and storage
  */
 export interface IMetaClass<T> {
     new(json?: any): T
@@ -111,7 +134,7 @@ export class Network {
     protected get headers(): any {
         return {}
     }
-    protected get method(): wts.HttpMethod {
+    protected get method(): Network.Method {
         return 'POST'
     }
     /**
@@ -125,7 +148,7 @@ export class Network {
      * @description you must provid an resover and return you business object
      * @param resp the http response object
      */
-    protected resolve(resp: wts.HttpResponse): any {
+    protected resolve(resp: wx.RequestResponse): any {
         throw new Error('Network.resolve must be implement')
     }
     public readonly upload = (file: Network.Upload, options?: Network.Options): Promise<any> => {
@@ -137,7 +160,7 @@ export class Network {
                 header: this.headers,
                 url: this.url(file.path),
                 filePath: file.file,
-                complete: res => {
+                success: res => {
                     wx.hideNavigationBarLoading()
                     if (options && options.loading) pop.idling()
                     try {
@@ -147,7 +170,8 @@ export class Network {
                     } catch (error) {
                         reject(error)
                     }
-                }
+                },
+                fail: reject
             })
         })
     }
@@ -171,7 +195,7 @@ export class Network {
                 header: this.headers,
                 data: data,
                 method: options && options.method ? options.method : this.method,
-                complete: result => {
+                success: result => {
                     wx.hideNavigationBarLoading()
                     if (options && options.loading) pop.idling()
                     try {
@@ -183,7 +207,8 @@ export class Network {
                     } catch (error) {
                         reject(error)
                     }
-                }
+                },
+                fail: reject
             })
         });
     }
@@ -196,7 +221,7 @@ export class Network {
                 header: this.headers,
                 data: data,
                 method: options && options.method ? options.method : this.method,
-                complete: result => {
+                success: result => {
                     wx.hideNavigationBarLoading()
                     if (options && options.loading) pop.idling()
                     try {
@@ -208,7 +233,8 @@ export class Network {
                     } catch (error) {
                         reject(error)
                     }
-                }
+                },
+                fail: reject
             })
         });
     }
@@ -221,7 +247,7 @@ export class Network {
                 header: this.headers,
                 data: data,
                 method: options && options.method ? options.method : this.method,
-                complete: result => {
+                success: result => {
                     wx.hideNavigationBarLoading()
                     if (options && options.loading) pop.idling()
                     try {
@@ -234,12 +260,14 @@ export class Network {
                     } catch (error) {
                         reject(error)
                     }
-                }
+                },
+                fail: reject
             })
         });
     }
 }
 export namespace Network {
+    export type Method = 'POST' | 'GET'
     /**
      * @description the upload file struct
      * @param path the relative request path
@@ -261,7 +289,7 @@ export namespace Network {
      */
     export interface Options {
         readonly loading?: boolean | string
-        readonly method?: wts.HttpMethod
+        readonly method?: Method
         readonly timestamp?: boolean
     }
     /**
@@ -279,17 +307,17 @@ export namespace Network {
     }
 }
 export class Socket {
-    private task: wts.SocketTask
+    private task: wx.SocketTask
     private _status: Socket.Status = 'closed'
     private _retrying: boolean = false
     private readonly buildurl: () => string
     public retryable: boolean = false
     public readonly retry: Socket.Retry
-    public onopen: (evt: Event, isRetry: boolean) => void
-    public onclose: (evt: wts.SocketClose) => void
-    public onerror: (evt: wts.SocketError) => void
-    public onfailed: (evt: wts.SocketClose) => void
-    public onmessage: (evt: wts.SocketMessage) => void
+    public onopen: (evt: any, isRetry: boolean) => void
+    public onclose: (evt: wx.SocketClose) => void
+    public onerror: (evt: wx.SocketError) => void
+    public onfailed: (evt: wx.SocketClose) => void
+    public onmessage: (evt: wx.SocketMessage) => void
     constructor(builder: () => string) {
         this.buildurl = builder
         this.retry = new Socket.Retry(this.onRetryCallback.bind(this), this.onRetryFailed.bind(this))
@@ -298,20 +326,20 @@ export class Socket {
         this.open()
         this._retrying = true
     }
-    private onRetryFailed(e: wts.SocketClose) {
+    private onRetryFailed(e: wx.SocketClose) {
         this._retrying = false
         if (typeof this.onfailed === 'function') {
             this.onfailed(e)
         }
     }
-    private onOpenCallback(res: any) {
+    private onOpenCallback(res: wx.OnOpenCallbackResult) {
         this._status = 'opened'
         if (typeof this.onopen === 'function') {
             this.onopen(res, this._retrying)
         }
         this._retrying = false
     }
-    private onCloseCallback(res: wts.SocketClose) {
+    private onCloseCallback(res: wx.SocketClose) {
         this._status = 'closed'
         if (this.retryable && res.code < 3000) {
             this.retry.attempt(res);
@@ -320,12 +348,12 @@ export class Socket {
             this.onclose(res)
         }
     }
-    private onErrorCallback(res: wts.SocketError) {
+    private onErrorCallback(res: wx.SocketError) {
         if (typeof this.onerror === 'function') {
             this.onerror(res)
         }
     }
-    private onMessageCallback(res: wts.SocketMessage) {
+    private onMessageCallback(res: wx.SocketMessage) {
         if (typeof this.onmessage === 'function') {
             this.onmessage(res)
         }
@@ -384,9 +412,9 @@ export namespace Socket {
          */
         public times: number = 5
         private count: number = 0//已经尝试次数
-        private readonly onAttempt: (evt: wts.SocketClose) => void
-        private readonly onFailed: (evt: wts.SocketClose) => void
-        constructor(attempt: (evt: wts.SocketClose) => void, failed: (evt: wts.SocketClose) => void) {
+        private readonly onAttempt: (evt: wx.SocketClose) => void
+        private readonly onFailed: (evt: wx.SocketClose) => void
+        constructor(attempt: (evt: wx.SocketClose) => void, failed: (evt: wx.SocketClose) => void) {
             this.onAttempt = attempt
             this.onFailed = failed
         }
@@ -402,7 +430,7 @@ export namespace Socket {
         /**
          * @description use this method to trigger onAttempt action or onFailed action
          */
-        public readonly attempt = (evt: wts.SocketClose) => {
+        public readonly attempt = (evt: wx.SocketClose) => {
             if (this.count < this.times) {
                 setTimeout(() => this.onAttempt(evt), this.random(this.count++, this.delay));
             } else {
@@ -523,7 +551,7 @@ export namespace Socket {
          */
         protected buildurl(): string { return '' }
         /** call when some error occur @override point */
-        protected onError(res: wts.SocketError) { }
+        protected onError(res: wx.GeneralCallbackResult) { }
         /** call when socket closed . @override point */
         protected onOpened(res: any, isRetry: boolean) { }
         /** 
@@ -531,13 +559,13 @@ export namespace Socket {
          * @description call when socket closed  
          * @notice onFailed and onClosed only trigger one
          */
-        protected onClosed(res: wts.SocketClose) { }
+        protected onClosed(res: wx.SocketClose) { }
         /** 
          * @override point
          * @description call when socket retry failed  
          * @notice onFailed and onClosed only trigger one
          */
-        protected onFailed(res: wts.SocketClose) { }
+        protected onFailed(res: wx.SocketClose) { }
         /** call when get some message @override point */
         protected onMessage(msg: any) { }
         public get status() {
@@ -589,7 +617,7 @@ export class SocketClient {
     private observers: Socket.Observers = new Socket.Observers()
     private timer: number = null;
     private pingTimeout: number = null;
-    private task: wts.SocketTask
+    private task: wx.SocketTask
     private attemptTimes: number;
     private addObserve = () => {
         if (!this.task) {
@@ -743,11 +771,11 @@ export class SocketClient {
      * @default impl is return res.code === 4001 || res.code === 4002,4001,4002 is the default auth fail code 
      * @description If get true socket will not attempt again. At this time didLogout will be call!
      */
-    protected isAuthFail(res: wts.SocketClose): boolean {
+    protected isAuthFail(res: wx.SocketClose): boolean {
         return res.code === 4001 || res.code === 4002
     }
     /** call when some error occur */
-    protected onError(res: wts.SocketError) {
+    protected onError(res: wx.GeneralCallbackResult) {
 
     }
     /** call when socket closed .  */
@@ -755,7 +783,7 @@ export class SocketClient {
 
     }
     /** call when socket closed */
-    protected onClosed(res: wts.SocketClose) {
+    protected onClosed(res: wx.SocketClose) {
 
     }
     /** call when socket retry failed */
