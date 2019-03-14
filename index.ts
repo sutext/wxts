@@ -450,7 +450,7 @@ export namespace Socket {
             if (this.socket.status !== 'opened') return
             const data = "{\"type\":\"PING\"}"
             this.socket.send(data)
-            console.log('发送 PONG:', data);
+            console.log('发送 PING:', data);
             this.timeout = setTimeout(() => {
                 console.log('PING 超时');
                 this.timeout = null;
