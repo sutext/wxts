@@ -161,7 +161,7 @@ export declare namespace Network {
     class DataTask<T> implements PromiseLike<T> {
         private readonly promiss;
         protected readonly handler: wx.RequestTask;
-        readonly [Symbol.toStringTag]: string;
+        readonly [Symbol.toStringTag]: 'Promise';
         constructor(promiss: Promise<T>, handler: wx.RequestTask);
         readonly then: <TResult1 = T, TResult2 = never>(onfulfilled?: (value: T) => TResult1 | PromiseLike<TResult1>, onrejected?: (reason: any) => TResult2 | PromiseLike<TResult2>) => Promise<TResult1 | TResult2>;
         readonly catch: <TResult = never>(onrejected?: (reason: any) => TResult | PromiseLike<TResult>) => Promise<T | TResult>;

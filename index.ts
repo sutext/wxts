@@ -349,7 +349,7 @@ export namespace Network {
     export class DataTask<T> implements PromiseLike<T>{
         private readonly promiss: Promise<T>
         protected readonly handler: wx.RequestTask
-        public readonly [Symbol.toStringTag]: string = "Network.DataTask"
+        public readonly [Symbol.toStringTag]: 'Promise' = 'Promise'
         constructor(promiss: Promise<T>, handler: wx.RequestTask) {
             this.promiss = promiss
             this.handler = handler

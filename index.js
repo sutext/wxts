@@ -303,7 +303,7 @@ exports.Network = Network;
     var DataTask = /** @class */ (function () {
         function DataTask(promiss, handler) {
             var _this = this;
-            this[Symbol.toStringTag] = "Network.DataTask";
+            this[Symbol.toStringTag] = 'Promise';
             this.then = function (onfulfilled, onrejected) {
                 return _this.promiss.then(onfulfilled, onrejected);
             };
