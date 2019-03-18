@@ -349,11 +349,12 @@ export namespace Network {
     export class DataTask<T> implements PromiseLike<T>{
         private readonly promiss: Promise<T>
         protected readonly handler: wx.RequestTask
+        public readonly [Symbol.toStringTag]: string = "Network.DataTask"
         constructor(promiss: Promise<T>, handler: wx.RequestTask) {
             this.promiss = promiss
             this.handler = handler
         }
-        public readonly then = <TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): PromiseLike<TResult1 | TResult2> => {
+        public readonly then = <TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): Promise<TResult1 | TResult2> => {
             return this.promiss.then(onfulfilled, onrejected)
         }
         public readonly catch = <TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): Promise<T | TResult> => {
