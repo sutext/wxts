@@ -1,4 +1,28 @@
 "use strict";
+var __extends = (this && this.__extends) || (function () {
+    var extendStatics = function (d, b) {
+        extendStatics = Object.setPrototypeOf ||
+            ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+            function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+        return extendStatics(d, b);
+    }
+    return function (d, b) {
+        extendStatics(d, b);
+        function __() { this.constructor = d; }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+})();
+var __assign = (this && this.__assign) || function () {
+    __assign = Object.assign || function(t) {
+        for (var s, i = 1, n = arguments.length; i < n; i++) {
+            s = arguments[i];
+            for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p))
+                t[p] = s[p];
+        }
+        return t;
+    };
+    return __assign.apply(this, arguments);
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 function trim(origin) {
     var result = {};
@@ -91,34 +115,6 @@ exports.widget = widget;
 var Network = /** @class */ (function () {
     function Network() {
         var _this = this;
-        this.upload = function (file, options) {
-            wx.showNavigationBarLoading();
-            if (options && options.loading)
-                pop.wait(typeof options.loading === 'string' ? options.loading : undefined);
-            var handler;
-            var promiss = new Promise(function (resolve, reject) {
-                handler = wx.uploadFile({
-                    name: file.name,
-                    header: _this.headers,
-                    url: _this.url(file.path),
-                    filePath: file.file,
-                    complete: function (res) {
-                        wx.hideNavigationBarLoading();
-                        if (options && options.loading)
-                            pop.idle();
-                        try {
-                            res.data = JSON.parse(res.data);
-                            var value = _this.resolve(res);
-                            resolve(value);
-                        }
-                        catch (error) {
-                            reject(error);
-                        }
-                    },
-                });
-            });
-            return new Network.DataTask(promiss, handler);
-        };
         this.anyreq = function (req) {
             return _this.anytask(req.path, req.data, req.options);
         };
@@ -131,6 +127,34 @@ var Network = /** @class */ (function () {
             if (typeof req.meta !== 'function')
                 throw new Error('the req of aryreq must be Function');
             return _this.arytask(req.meta, req.path, req.data, req.options);
+        };
+        this.upload = function (file, loading) {
+            wx.showNavigationBarLoading();
+            if (loading)
+                pop.wait(typeof loading === 'string' ? loading : undefined);
+            var handler;
+            var promiss = new Promise(function (resolve, reject) {
+                handler = wx.uploadFile({
+                    name: file.name,
+                    header: _this.headers,
+                    url: _this.url(file.path),
+                    filePath: file.file,
+                    formData: file.data,
+                    complete: function (res) {
+                        wx.hideNavigationBarLoading();
+                        pop.idle();
+                        try {
+                            res.data = JSON.parse(res.data);
+                            var value = _this.resolve(res);
+                            resolve(value);
+                        }
+                        catch (error) {
+                            reject(error);
+                        }
+                    },
+                });
+            });
+            return new Network.UploadTask(promiss, handler);
         };
         this.anytask = function (path, data, options) {
             wx.showNavigationBarLoading();
@@ -224,6 +248,25 @@ var Network = /** @class */ (function () {
             });
             return new Network.DataTask(promiss, handler);
         };
+        this.download = function (opts, loading) {
+            wx.showNavigationBarLoading();
+            if (loading)
+                pop.wait(typeof loading === 'string' ? loading : undefined);
+            var handler;
+            var promiss = new Promise(function (resolve, reject) {
+                handler = wx.downloadFile(__assign({}, opts, { complete: function (res) {
+                        wx.hideNavigationBarLoading();
+                        pop.idle();
+                        if (typeof res.tempFilePath === 'string') {
+                            resolve(res.tempFilePath);
+                        }
+                        else {
+                            reject(res.errMsg || "download file from " + opts.url + " failed!");
+                        }
+                    } }));
+            });
+            return new Network.DownloadTask(promiss, handler);
+        };
     }
     Object.defineProperty(Network.prototype, "headers", {
         get: function () {
@@ -272,18 +315,44 @@ exports.Network = Network;
             this.onHeaders = function (func) {
                 _this.handler.onHeadersReceived(func);
             };
-            this.onProgress = function (func) {
-                var handler = _this.handler;
-                if (handler) {
-                    handler.onProgressUpdate(function (res) { return func({ value: res.progress, count: res.totalBytesSent, total: res.totalBytesExpectedToSend }); });
-                }
-            };
             this.promiss = promiss;
             this.handler = handler;
         }
         return DataTask;
     }());
     Network.DataTask = DataTask;
+    var UploadTask = /** @class */ (function (_super) {
+        __extends(UploadTask, _super);
+        function UploadTask(promiss, handler) {
+            var _this = _super.call(this, promiss, handler) || this;
+            _this.onProgress = function (callback) {
+                _this.handler.onProgressUpdate(function (res) { return callback({
+                    value: res.progress,
+                    count: res.totalBytesSent,
+                    total: res.totalBytesExpectedToSend,
+                }); });
+            };
+            return _this;
+        }
+        return UploadTask;
+    }(DataTask));
+    Network.UploadTask = UploadTask;
+    var DownloadTask = /** @class */ (function (_super) {
+        __extends(DownloadTask, _super);
+        function DownloadTask(promiss, handler) {
+            var _this = _super.call(this, promiss, handler) || this;
+            _this.onProgress = function (callback) {
+                _this.handler.onProgressUpdate(function (res) { return callback({
+                    value: res.progress,
+                    count: res.totalBytesWritten,
+                    total: res.totalBytesExpectedToWrite,
+                }); });
+            };
+            return _this;
+        }
+        return DownloadTask;
+    }(DataTask));
+    Network.DownloadTask = DownloadTask;
 })(Network = exports.Network || (exports.Network = {}));
 exports.Network = Network;
 var Socket = /** @class */ (function () {

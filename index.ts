@@ -141,31 +141,6 @@ export class Network {
     protected resolve(resp: wx.HttpResponse): any {
         throw new Error('Network.resolve must be implement')
     }
-    public readonly upload = (file: Network.Upload, options?: Network.Options) => {
-        wx.showNavigationBarLoading()
-        if (options && options.loading) pop.wait(typeof options.loading === 'string' ? options.loading : undefined)
-        let handler: wx.UploadTask
-        const promiss = new Promise((resolve, reject) => {
-            handler = wx.uploadFile({
-                name: file.name,
-                header: this.headers,
-                url: this.url(file.path),
-                filePath: file.file,
-                complete: res => {
-                    wx.hideNavigationBarLoading()
-                    if (options && options.loading) pop.idle()
-                    try {
-                        res.data = JSON.parse(res.data)
-                        const value = this.resolve(res)
-                        resolve(value)
-                    } catch (error) {
-                        reject(error)
-                    }
-                },
-            })
-        });
-        return new Network.DataTask(promiss, handler)
-    }
     public readonly anyreq = <T>(req: Network.Request<T>) => {
         return this.anytask<T>(req.path, req.data, req.options)
     }
@@ -177,9 +152,36 @@ export class Network {
         if (typeof req.meta !== 'function') throw new Error('the req of aryreq must be Function')
         return this.arytask(req.meta as IMetaClass<T>, req.path, req.data, req.options)
     }
+    public readonly upload = (file: Network.Upload, loading: string | boolean) => {
+        wx.showNavigationBarLoading()
+        if (loading) pop.wait(typeof loading === 'string' ? loading : undefined)
+        let handler: wx.UploadTask
+        const promiss = new Promise<any>((resolve, reject) => {
+            handler = wx.uploadFile({
+                name: file.name,
+                header: this.headers,
+                url: this.url(file.path),
+                filePath: file.file,
+                formData: file.data,
+                complete: res => {
+                    wx.hideNavigationBarLoading()
+                    pop.idle()
+                    try {
+                        res.data = JSON.parse(res.data)
+                        const value = this.resolve(res)
+                        resolve(value)
+                    } catch (error) {
+                        reject(error)
+                    }
+                },
+            })
+        });
+        return new Network.UploadTask(promiss, handler)
+    }
     public readonly anytask = <T = any>(path: string, data?: any, options?: Network.Options) => {
         wx.showNavigationBarLoading()
-        if (options && options.loading) pop.wait(typeof options.loading === 'string' ? options.loading : undefined)
+        if (options && options.loading)
+            pop.wait(typeof options.loading === 'string' ? options.loading : undefined)
         let handler: wx.RequestTask
         const promiss = new Promise<T>((resolve, reject) => {
             handler = wx.request({
@@ -206,7 +208,8 @@ export class Network {
     }
     public readonly objtask = <T>(c: IMetaClass<T>, path: string, data?: any, options?: Network.Options) => {
         wx.showNavigationBarLoading()
-        if (options && options.loading) pop.wait(typeof options.loading === 'string' ? options.loading : undefined)
+        if (options && options.loading)
+            pop.wait(typeof options.loading === 'string' ? options.loading : undefined)
         let handler: wx.RequestTask
         const promiss = new Promise<T>((resolve, reject) => {
             handler = wx.request({
@@ -233,7 +236,8 @@ export class Network {
     }
     public readonly arytask = <T>(c: IMetaClass<T>, path: string, data?: any, options?: Network.Options) => {
         wx.showNavigationBarLoading()
-        if (options && options.loading) pop.wait(typeof options.loading === 'string' ? options.loading : undefined)
+        if (options && options.loading)
+            pop.wait(typeof options.loading === 'string' ? options.loading : undefined)
         let handler: wx.RequestTask
         const promiss = new Promise<T[]>((resolve, reject) => {
             handler = wx.request({
@@ -259,20 +263,29 @@ export class Network {
         });
         return new Network.DataTask(promiss, handler)
     }
+    public readonly download = (opts: Network.Download, loading?: string | boolean) => {
+        wx.showNavigationBarLoading()
+        if (loading) pop.wait(typeof loading === 'string' ? loading : undefined)
+        let handler: wx.DownloadTask
+        const promiss = new Promise<string>((resolve, reject) => {
+            handler = wx.downloadFile({
+                ...opts,
+                complete: res => {
+                    wx.hideNavigationBarLoading()
+                    pop.idle()
+                    if (typeof res.tempFilePath === 'string') {
+                        resolve(res.tempFilePath)
+                    } else {
+                        reject(res.errMsg || `download file from ${opts.url} failed!`)
+                    }
+                }
+            })
+        });
+        return new Network.DownloadTask(promiss, handler)
+    }
 }
 export namespace Network {
     export type Method = 'POST' | 'GET'
-    /**
-     * @description the upload file struct
-     * @param path the relative request path
-     * @param name the filename
-     * @param file the file local path  @example the result of wx.chooseImage
-     */
-    export interface Upload {
-        readonly path: string
-        readonly name: string
-        readonly file: string
-    }
     /**
      * @description the addtion network params
      * @param loading show loading modal or not or custome loading message. @default false 
@@ -285,6 +298,29 @@ export namespace Network {
         readonly method?: Method
         readonly loading?: boolean | string
         readonly timestamp?: boolean
+    }
+    /**
+     * @description the upload file struct
+     * @param path the relative request path
+     * @param name the filename
+     * @param file the file local path  @example the result of wx.chooseImage
+     */
+    export interface Upload {
+        readonly path: string
+        readonly name: string
+        readonly file: string
+        readonly data?: any
+    }
+    /**
+     * @description the upload file struct
+     * @param url the resource url
+     * @param type the file type
+     * @param file the file local path  @example the result of wx.chooseImage
+     */
+    export interface Download {
+        readonly url: string
+        readonly type?: 'image' | 'audio' | 'video'
+        readonly header?: any
     }
     /**
      * @description the network request interface use to packge request params
@@ -312,7 +348,7 @@ export namespace Network {
     }
     export class DataTask<T> implements PromiseLike<T>{
         private readonly promiss: Promise<T>
-        private readonly handler: wx.RequestTask
+        protected readonly handler: wx.RequestTask
         constructor(promiss: Promise<T>, handler: wx.RequestTask) {
             this.promiss = promiss
             this.handler = handler
@@ -329,11 +365,31 @@ export namespace Network {
         public readonly onHeaders = (func: (headers: any) => void) => {
             this.handler.onHeadersReceived(func)
         }
-        public readonly onProgress = (func: (progress: Progress) => void) => {
-            const handler = this.handler as wx.UploadTask
-            if (handler) {
-                handler.onProgressUpdate(res => func({ value: res.progress, count: res.totalBytesSent, total: res.totalBytesExpectedToSend }))
-            }
+    }
+    export class UploadTask extends DataTask<any>{
+        protected readonly handler: wx.UploadTask
+        constructor(promiss: Promise<any>, handler: wx.UploadTask) {
+            super(promiss, handler)
+        }
+        public readonly onProgress = (callback: (progress: Progress) => void) => {
+            this.handler.onProgressUpdate(res => callback({
+                value: res.progress,
+                count: res.totalBytesSent,
+                total: res.totalBytesExpectedToSend,
+            }))
+        }
+    }
+    export class DownloadTask extends DataTask<string>{
+        protected readonly handler: wx.DownloadTask
+        constructor(promiss: Promise<string>, handler: wx.DownloadTask) {
+            super(promiss, handler)
+        }
+        public readonly onProgress = (callback: (progress: Progress) => void) => {
+            this.handler.onProgressUpdate(res => callback({
+                value: res.progress,
+                count: res.totalBytesWritten,
+                total: res.totalBytesExpectedToWrite,
+            }))
         }
     }
 }

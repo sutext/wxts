@@ -87,27 +87,17 @@ export declare class Network {
      * @param resp the http response object
      */
     protected resolve(resp: wx.HttpResponse): any;
-    readonly upload: (file: Network.Upload, options?: Network.Options) => Network.DataTask<{}>;
     readonly anyreq: <T>(req: Network.Request<T>) => Network.DataTask<T>;
     readonly objreq: <T>(req: Network.Request<T>) => Network.DataTask<T>;
     readonly aryreq: <T>(req: Network.Request<T>) => Network.DataTask<T[]>;
+    readonly upload: (file: Network.Upload, loading: string | boolean) => Network.UploadTask;
     readonly anytask: <T = any>(path: string, data?: any, options?: Network.Options) => Network.DataTask<T>;
     readonly objtask: <T>(c: IMetaClass<T>, path: string, data?: any, options?: Network.Options) => Network.DataTask<T>;
     readonly arytask: <T>(c: IMetaClass<T>, path: string, data?: any, options?: Network.Options) => Network.DataTask<T[]>;
+    readonly download: (opts: Network.Download, loading?: string | boolean) => Network.DownloadTask;
 }
 export declare namespace Network {
     type Method = 'POST' | 'GET';
-    /**
-     * @description the upload file struct
-     * @param path the relative request path
-     * @param name the filename
-     * @param file the file local path  @example the result of wx.chooseImage
-     */
-    interface Upload {
-        readonly path: string;
-        readonly name: string;
-        readonly file: string;
-    }
     /**
      * @description the addtion network params
      * @param loading show loading modal or not or custome loading message. @default false
@@ -120,6 +110,29 @@ export declare namespace Network {
         readonly method?: Method;
         readonly loading?: boolean | string;
         readonly timestamp?: boolean;
+    }
+    /**
+     * @description the upload file struct
+     * @param path the relative request path
+     * @param name the filename
+     * @param file the file local path  @example the result of wx.chooseImage
+     */
+    interface Upload {
+        readonly path: string;
+        readonly name: string;
+        readonly file: string;
+        readonly data?: any;
+    }
+    /**
+     * @description the upload file struct
+     * @param url the resource url
+     * @param type the file type
+     * @param file the file local path  @example the result of wx.chooseImage
+     */
+    interface Download {
+        readonly url: string;
+        readonly type?: 'image' | 'audio' | 'video';
+        readonly header?: any;
     }
     /**
      * @description the network request interface use to packge request params
@@ -147,13 +160,22 @@ export declare namespace Network {
     }
     class DataTask<T> implements PromiseLike<T> {
         private readonly promiss;
-        private readonly handler;
+        protected readonly handler: wx.RequestTask;
         constructor(promiss: Promise<T>, handler: wx.RequestTask);
         readonly then: <TResult1 = T, TResult2 = never>(onfulfilled?: (value: T) => TResult1 | PromiseLike<TResult1>, onrejected?: (reason: any) => TResult2 | PromiseLike<TResult2>) => PromiseLike<TResult1 | TResult2>;
         readonly catch: <TResult = never>(onrejected?: (reason: any) => TResult | PromiseLike<TResult>) => Promise<T | TResult>;
         readonly abort: () => void;
         readonly onHeaders: (func: (headers: any) => void) => void;
-        readonly onProgress: (func: (progress: Progress) => void) => void;
+    }
+    class UploadTask extends DataTask<any> {
+        protected readonly handler: wx.UploadTask;
+        constructor(promiss: Promise<any>, handler: wx.UploadTask);
+        readonly onProgress: (callback: (progress: Progress) => void) => void;
+    }
+    class DownloadTask extends DataTask<string> {
+        protected readonly handler: wx.DownloadTask;
+        constructor(promiss: Promise<string>, handler: wx.DownloadTask);
+        readonly onProgress: (callback: (progress: Progress) => void) => void;
     }
 }
 export declare class Socket {
