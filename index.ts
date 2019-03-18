@@ -1,3 +1,12 @@
+function trim(origin: any) {
+    const result: any = {}
+    for (const key in origin) {
+        if (key !== 'constructor') {
+            result[key] = origin[key]
+        }
+    }
+    return result
+}
 let globalData: wx.IAnyObject
 export class IApp implements wx.IApp {
     [other: string]: any
@@ -13,9 +22,7 @@ export function app(global?: wx.IAnyObject) {
     }
     globalData = global || {}
     return function (target: new () => IApp) {
-        const param = new target()
-        delete param.constructor
-        App(param)
+        App(trim(new target()))
     }
 }
 export class IPage<D=any> implements wx.IPage {
@@ -50,11 +57,10 @@ export class IPage<D=any> implements wx.IPage {
 export function page(inital?: wx.IAnyObject) {
     return function (target: new () => IPage) {
         const param = new target()
-        delete param.constructor
         const data = {}
         Object.assign(data, globalData, inital, param.data)
         Object.assign(param, { data })
-        Page(param)
+        Page(trim(param))
     }
 }
 export class Widget<D=any> implements wx.IComponent {
@@ -139,7 +145,7 @@ export class Network {
         wx.showNavigationBarLoading()
         if (options && options.loading) pop.wait(typeof options.loading === 'string' ? options.loading : undefined)
         let handler: wx.UploadTask
-        const task = new Network.UploadTask((resolve, reject) => {
+        const promiss = new Promise((resolve, reject) => {
             handler = wx.uploadFile({
                 name: file.name,
                 header: this.headers,
@@ -158,9 +164,7 @@ export class Network {
                 },
             })
         });
-        //@ts-ignore
-        task.handler = handler
-        return task
+        return new Network.DataTask(promiss, handler)
     }
     public readonly anyreq = <T>(req: Network.Request<T>) => {
         return this.anytask<T>(req.path, req.data, req.options)
@@ -177,7 +181,7 @@ export class Network {
         wx.showNavigationBarLoading()
         if (options && options.loading) pop.wait(typeof options.loading === 'string' ? options.loading : undefined)
         let handler: wx.RequestTask
-        const task = new Network.DataTask<T>((resolve, reject) => {
+        const promiss = new Promise<T>((resolve, reject) => {
             handler = wx.request({
                 url: this.url(path),
                 header: this.headers,
@@ -198,15 +202,13 @@ export class Network {
                 }
             })
         });
-        //@ts-ignore
-        task.handler = handler
-        return task
+        return new Network.DataTask(promiss, handler)
     }
     public readonly objtask = <T>(c: IMetaClass<T>, path: string, data?: any, options?: Network.Options) => {
         wx.showNavigationBarLoading()
         if (options && options.loading) pop.wait(typeof options.loading === 'string' ? options.loading : undefined)
         let handler: wx.RequestTask
-        const task = new Network.DataTask<T>((resolve, reject) => {
+        const promiss = new Promise<T>((resolve, reject) => {
             handler = wx.request({
                 url: this.url(path),
                 header: this.headers,
@@ -227,15 +229,13 @@ export class Network {
                 },
             })
         });
-        //@ts-ignore
-        task.handler = handler
-        return task
+        return new Network.DataTask(promiss, handler)
     }
     public readonly arytask = <T>(c: IMetaClass<T>, path: string, data?: any, options?: Network.Options) => {
         wx.showNavigationBarLoading()
         if (options && options.loading) pop.wait(typeof options.loading === 'string' ? options.loading : undefined)
         let handler: wx.RequestTask
-        const task = new Network.DataTask<T[]>((resolve, reject) => {
+        const promiss = new Promise<T[]>((resolve, reject) => {
             handler = wx.request({
                 url: this.url(path),
                 header: this.headers,
@@ -257,9 +257,7 @@ export class Network {
                 }
             })
         });
-        //@ts-ignore
-        task.handler = handler
-        return task
+        return new Network.DataTask(promiss, handler)
     }
 }
 export namespace Network {
@@ -312,25 +310,30 @@ export namespace Network {
         readonly count: number
         readonly total: number
     }
-    export class DataTask<T> extends Promise<T>{
+    export class DataTask<T> implements PromiseLike<T>{
+        private readonly promiss: Promise<T>
         private readonly handler: wx.RequestTask
-        readonly abort = () => {
+        constructor(promiss: Promise<T>, handler: wx.RequestTask) {
+            this.promiss = promiss
+            this.handler = handler
+        }
+        public readonly then = <TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): PromiseLike<TResult1 | TResult2> => {
+            return this.promiss.then(onfulfilled, onrejected)
+        }
+        public readonly catch = <TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): Promise<T | TResult> => {
+            return this.promiss.catch(onrejected)
+        }
+        public readonly abort = () => {
             this.handler.abort()
         }
-        readonly onHeaders = (func: (headers: any) => void) => {
+        public readonly onHeaders = (func: (headers: any) => void) => {
             this.handler.onHeadersReceived(func)
         }
-    }
-    export class UploadTask extends Promise<any>{
-        private readonly handler: wx.UploadTask
-        readonly abort = () => {
-            this.handler.abort()
-        }
-        readonly onHeaders = (func: (headers: any) => void) => {
-            this.handler.onHeadersReceived(func)
-        }
-        readonly onProgress = (func: (progress: Progress) => void) => {
-            this.handler.onProgressUpdate(res => func({ value: res.progress, count: res.totalBytesSent, total: res.totalBytesExpectedToSend }))
+        public readonly onProgress = (func: (progress: Progress) => void) => {
+            const handler = this.handler as wx.UploadTask
+            if (handler) {
+                handler.onProgressUpdate(res => func({ value: res.progress, count: res.totalBytesSent, total: res.totalBytesExpectedToSend }))
+            }
         }
     }
 }

@@ -87,7 +87,7 @@ export declare class Network {
      * @param resp the http response object
      */
     protected resolve(resp: wx.HttpResponse): any;
-    readonly upload: (file: Network.Upload, options?: Network.Options) => Network.UploadTask;
+    readonly upload: (file: Network.Upload, options?: Network.Options) => Network.DataTask<{}>;
     readonly anyreq: <T>(req: Network.Request<T>) => Network.DataTask<T>;
     readonly objreq: <T>(req: Network.Request<T>) => Network.DataTask<T>;
     readonly aryreq: <T>(req: Network.Request<T>) => Network.DataTask<T[]>;
@@ -145,13 +145,12 @@ export declare namespace Network {
         readonly count: number;
         readonly total: number;
     }
-    class DataTask<T> extends Promise<T> {
+    class DataTask<T> implements PromiseLike<T> {
+        private readonly promiss;
         private readonly handler;
-        readonly abort: () => void;
-        readonly onHeaders: (func: (headers: any) => void) => void;
-    }
-    class UploadTask extends Promise<any> {
-        private readonly handler;
+        constructor(promiss: Promise<T>, handler: wx.RequestTask);
+        readonly then: <TResult1 = T, TResult2 = never>(onfulfilled?: (value: T) => TResult1 | PromiseLike<TResult1>, onrejected?: (reason: any) => TResult2 | PromiseLike<TResult2>) => PromiseLike<TResult1 | TResult2>;
+        readonly catch: <TResult = never>(onrejected?: (reason: any) => TResult | PromiseLike<TResult>) => Promise<T | TResult>;
         readonly abort: () => void;
         readonly onHeaders: (func: (headers: any) => void) => void;
         readonly onProgress: (func: (progress: Progress) => void) => void;
