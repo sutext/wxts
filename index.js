@@ -1,21 +1,25 @@
 "use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-function trim(obj) {
-    var result = {};
-    for (var key in obj) {
-        if (key !== 'constructor') {
-            result[key] = obj[key];
-        }
+var __extends = (this && this.__extends) || (function () {
+    var extendStatics = function (d, b) {
+        extendStatics = Object.setPrototypeOf ||
+            ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+            function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+        return extendStatics(d, b);
     }
-    return result;
-}
+    return function (d, b) {
+        extendStatics(d, b);
+        function __() { this.constructor = d; }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+})();
+Object.defineProperty(exports, "__esModule", { value: true });
+var globalData;
 var IApp = /** @class */ (function () {
     function IApp() {
     }
     return IApp;
 }());
 exports.IApp = IApp;
-var globalData;
 /**
  * @default {}
  * @description global data will be inject to every Ipage.
@@ -27,7 +31,9 @@ function app(global) {
     }
     globalData = global || {};
     return function (target) {
-        App(trim(new target()));
+        var param = new target();
+        delete param.constructor;
+        App(param);
     };
 }
 exports.app = app;
@@ -45,10 +51,11 @@ exports.IPage = IPage;
 function page(inital) {
     return function (target) {
         var param = new target();
-        var global = {};
-        Object.assign(global, globalData, inital, param.data);
-        Object.assign(param, { data: global });
-        Page(trim(param));
+        delete param.constructor;
+        var data = {};
+        Object.assign(data, globalData, inital, param.data);
+        Object.assign(param, { data: data });
+        Page(param);
     };
 }
 exports.page = page;
@@ -81,18 +88,9 @@ function widget(inital) {
         for (var key in param) {
             _loop_1(key);
         }
-        if (inital) {
-            var data = result.data;
-            if (data) {
-                Object.assign(inital, data);
-            }
-            else {
-                Object.assign(result, { data: inital });
-            }
-        }
-        var global = {};
-        Object.assign(global, globalData, inital, result.data);
-        Object.assign(result, { data: global });
+        var data = {};
+        Object.assign(data, inital, result.data);
+        Object.assign(result, { data: data });
         Component(result);
     };
 }
@@ -103,9 +101,10 @@ var Network = /** @class */ (function () {
         this.upload = function (file, options) {
             wx.showNavigationBarLoading();
             if (options && options.loading)
-                pop.waiting(typeof options.loading === 'string' ? options.loading : undefined);
-            return new Promise(function (resolve, reject) {
-                wx.uploadFile({
+                pop.wait(typeof options.loading === 'string' ? options.loading : undefined);
+            var handler;
+            var task = new Network.UploadTask(function (resolve, reject) {
+                handler = wx.uploadFile({
                     name: file.name,
                     header: _this.headers,
                     url: _this.url(file.path),
@@ -113,7 +112,7 @@ var Network = /** @class */ (function () {
                     complete: function (res) {
                         wx.hideNavigationBarLoading();
                         if (options && options.loading)
-                            pop.idling();
+                            pop.idle();
                         try {
                             res.data = JSON.parse(res.data);
                             var value = _this.resolve(res);
@@ -125,6 +124,9 @@ var Network = /** @class */ (function () {
                     },
                 });
             });
+            //@ts-ignore
+            task.handler = handler;
+            return task;
         };
         this.anyreq = function (req) {
             return _this.anytask(req.path, req.data, req.options);
@@ -142,9 +144,10 @@ var Network = /** @class */ (function () {
         this.anytask = function (path, data, options) {
             wx.showNavigationBarLoading();
             if (options && options.loading)
-                pop.waiting(typeof options.loading === 'string' ? options.loading : undefined);
-            return new Promise(function (resolve, reject) {
-                wx.request({
+                pop.wait(typeof options.loading === 'string' ? options.loading : undefined);
+            var handler;
+            var task = new Network.DataTask(function (resolve, reject) {
+                handler = wx.request({
                     url: _this.url(path),
                     header: _this.headers,
                     data: data,
@@ -152,7 +155,7 @@ var Network = /** @class */ (function () {
                     complete: function (result) {
                         wx.hideNavigationBarLoading();
                         if (options && options.loading)
-                            pop.idling();
+                            pop.idle();
                         try {
                             var value = _this.resolve(result);
                             if (options && options.timestamp && value && result.header && result.header.Date) {
@@ -166,13 +169,17 @@ var Network = /** @class */ (function () {
                     }
                 });
             });
+            //@ts-ignore
+            task.handler = handler;
+            return task;
         };
         this.objtask = function (c, path, data, options) {
             wx.showNavigationBarLoading();
             if (options && options.loading)
-                pop.waiting(typeof options.loading === 'string' ? options.loading : undefined);
-            return new Promise(function (resolve, reject) {
-                wx.request({
+                pop.wait(typeof options.loading === 'string' ? options.loading : undefined);
+            var handler;
+            var task = new Network.DataTask(function (resolve, reject) {
+                handler = wx.request({
                     url: _this.url(path),
                     header: _this.headers,
                     data: data,
@@ -180,7 +187,7 @@ var Network = /** @class */ (function () {
                     complete: function (result) {
                         wx.hideNavigationBarLoading();
                         if (options && options.loading)
-                            pop.idling();
+                            pop.idle();
                         try {
                             var value = _this.resolve(result);
                             if (options && options.timestamp && value && result.header && result.header.Date) {
@@ -194,13 +201,17 @@ var Network = /** @class */ (function () {
                     },
                 });
             });
+            //@ts-ignore
+            task.handler = handler;
+            return task;
         };
         this.arytask = function (c, path, data, options) {
             wx.showNavigationBarLoading();
             if (options && options.loading)
-                pop.waiting(typeof options.loading === 'string' ? options.loading : undefined);
-            return new Promise(function (resolve, reject) {
-                wx.request({
+                pop.wait(typeof options.loading === 'string' ? options.loading : undefined);
+            var handler;
+            var task = new Network.DataTask(function (resolve, reject) {
+                handler = wx.request({
                     url: _this.url(path),
                     header: _this.headers,
                     data: data,
@@ -208,7 +219,7 @@ var Network = /** @class */ (function () {
                     complete: function (result) {
                         wx.hideNavigationBarLoading();
                         if (options && options.loading)
-                            pop.idling();
+                            pop.idle();
                         try {
                             var value = _this.resolve(result);
                             if (value && value.length > 0) {
@@ -224,6 +235,9 @@ var Network = /** @class */ (function () {
                     }
                 });
             });
+            //@ts-ignore
+            task.handler = handler;
+            return task;
         };
     }
     Object.defineProperty(Network.prototype, "headers", {
@@ -256,6 +270,42 @@ var Network = /** @class */ (function () {
     };
     return Network;
 }());
+exports.Network = Network;
+(function (Network) {
+    var DataTask = /** @class */ (function (_super) {
+        __extends(DataTask, _super);
+        function DataTask() {
+            var _this = _super !== null && _super.apply(this, arguments) || this;
+            _this.abort = function () {
+                _this.handler.abort();
+            };
+            _this.onHeaders = function (func) {
+                _this.handler.onHeadersReceived(func);
+            };
+            return _this;
+        }
+        return DataTask;
+    }(Promise));
+    Network.DataTask = DataTask;
+    var UploadTask = /** @class */ (function (_super) {
+        __extends(UploadTask, _super);
+        function UploadTask() {
+            var _this = _super !== null && _super.apply(this, arguments) || this;
+            _this.abort = function () {
+                _this.handler.abort();
+            };
+            _this.onHeaders = function (func) {
+                _this.handler.onHeadersReceived(func);
+            };
+            _this.onProgress = function (func) {
+                _this.handler.onProgressUpdate(function (res) { return func({ value: res.progress, count: res.totalBytesSent, total: res.totalBytesExpectedToSend }); });
+            };
+            return _this;
+        }
+        return UploadTask;
+    }(Promise));
+    Network.UploadTask = UploadTask;
+})(Network = exports.Network || (exports.Network = {}));
 exports.Network = Network;
 var Socket = /** @class */ (function () {
     function Socket(builder) {
@@ -595,255 +645,28 @@ exports.Socket = Socket;
     Socket.Client = Client;
 })(Socket = exports.Socket || (exports.Socket = {}));
 exports.Socket = Socket;
-var SocketClient = /** @class */ (function () {
-    function SocketClient() {
-        var _this = this;
-        this._isConnected = false;
-        this._isConnecting = false;
-        this.observers = new Socket.Observers();
-        this.timer = null;
-        this.pingTimeout = null;
-        this.addObserve = function () {
-            if (!_this.task) {
-                return;
-            }
-            _this.task.onOpen(function (res) {
-                _this.log('WebSocket连接已打开！', res);
-                _this._isConnecting = false;
-                _this._isConnected = true;
-                _this.onOpened(res);
-            });
-            _this.task.onError(function (res) {
-                _this.log('WebSocket连接打开失败，请检查！', res);
-                _this._isConnected = false;
-                _this._isConnecting = false;
-                _this.onError(res);
-            });
-            _this.task.onMessage(function (res) {
-                if (typeof res.data === "string") {
-                    try {
-                        _this.handle(JSON.parse(res.data), false);
-                    }
-                    catch (error) {
-                        _this.log(error);
-                    }
-                }
-                _this.log('收到WebSocket消息：', res);
-            });
-            _this.task.onClose(function (res) {
-                _this.log('WebSocket 已关闭！', res);
-                if (_this.isAuthFail(res)) {
-                    _this.stop();
-                    _this.onAuthFail();
-                    return;
-                }
-                _this.affterClose();
-            });
-        };
-        this.affterClose = function () {
-            _this._isConnected = false;
-            _this._isConnecting = false;
-            _this.task = null;
-            setTimeout(function () {
-                _this.attempt();
-            }, 1000);
-        };
-        this.close = function () {
-            if (!_this.task) {
-                return;
-            }
-            _this.task.close({
-                fail: function (res) {
-                    _this.affterClose();
-                }
-            });
-        };
-        this.attempt = function () {
-            if (_this.attemptTimes > _this.maxAttemptTimes) {
-                pop.alert('网络连接失败，请重试', function () { return _this.reattemp(); });
-                _this.onFailed();
-                return;
-            }
-            _this.connect();
-        };
-        this.reattemp = function () {
-            _this.attemptTimes = 0;
-            _this.attempt();
-        };
-        this.timerFunc = function () {
-            if (!_this._isConnected) {
-                _this.attempt();
-                return;
-            }
-            if (_this.pingTimeout) {
-                return;
-            }
-            var data = "{\"type\":\"PING\"}";
-            _this.task.send({ data: data });
-            _this.pingTimeout = setTimeout(function () {
-                _this.log("ping 超时");
-                _this.pingTimeout = null;
-                _this.close();
-            }, 3 * 1000);
-        };
-        this.connect = function () {
-            if (!_this.isLogin) {
-                return;
-            }
-            if (!_this.timer) {
-                return;
-            }
-            if (_this._isConnected) {
-                return;
-            }
-            if (_this._isConnecting) {
-                return;
-            }
-            _this._isConnecting = true;
-            _this.task = wx.connectSocket({ url: _this._url });
-            _this.addObserve();
-            _this.attemptTimes += 1;
-        };
-        this.handle = function (msg, isOffline) {
-            if (msg.type == "PONG") {
-                if (_this.pingTimeout) {
-                    clearTimeout(_this.pingTimeout);
-                    _this.pingTimeout = null;
-                }
-                _this.log("收到pong消息：", msg);
-                return;
-            }
-            _this.onMessage(msg, isOffline);
-            _this.observers.message.forEach(function (ele) { return ele.callback.call(ele.target); });
-        };
-        /**
-         * @default 10
-         * @description the max attempt times
-         */
-        this.maxAttemptTimes = 10;
-        /**
-         * @default 30
-         * @description the heartbeat interal
-         */
-        this.heartbeatInterval = 30;
-        /**
-         * @description start the socket monitor.
-         * try to connect the socket server.
-         * the heartbeat mechanism will be work
-         */
-        this.start = function () {
-            if (_this.timer) {
-                return;
-            }
-            _this.timer = setInterval(function () {
-                _this.timerFunc();
-            }, 1000 * _this.heartbeatInterval);
-            _this.attemptTimes = 0;
-            _this.timerFunc();
-        };
-        /**
-         * @description stop the socket monitor.
-         * stop heartbeat mechanism
-         */
-        this.stop = function () {
-            if (!_this.timer) {
-                return;
-            }
-            clearInterval(_this.timer);
-            _this.timer = null;
-            _this.close();
-        };
-        this.on = function (evt, target, callback) {
-            var idx = _this.observers[evt].findIndex(function (ele) { return ele.target === target; });
-            if (idx === -1) {
-                _this.observers[evt].push({ callback: callback, target: target });
-            }
-        };
-        this.off = function (evt, target) {
-            var idx = _this.observers[evt].findIndex(function (ele) { return ele.target === target; });
-            if (idx !== -1) {
-                _this.observers[evt].splice(idx, 1);
-            }
-        };
-    }
-    SocketClient.prototype.log = function (msg, other) {
-        if (this.isDebug) {
-            console.log(msg, other || '');
-        }
-    };
-    /**
-     * subclass must impl this method to resolve url
-     * you must provide connect url
-     */
-    SocketClient.prototype.setURL = function (url) {
-        this._url = url;
-    };
-    Object.defineProperty(SocketClient.prototype, "isLogin", {
-        /**
-         * @default false
-         * @description you mast tell me the login status
-         */
-        get: function () {
-            return false;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(SocketClient.prototype, "isDebug", {
-        /**
-         * @default true
-         * @description print debug info or not
-         */
-        get: function () {
-            return true;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    /**
-     * @default impl is return res.code === 4001 || res.code === 4002,4001,4002 is the default auth fail code
-     * @description If get true socket will not attempt again. At this time didLogout will be call!
-     */
-    SocketClient.prototype.isAuthFail = function (res) {
-        return res.code === 4001 || res.code === 4002;
-    };
-    /** call when some error occur */
-    SocketClient.prototype.onError = function (res) {
-    };
-    /** call when socket closed .  */
-    SocketClient.prototype.onOpened = function (res) {
-    };
-    /** call when socket closed */
-    SocketClient.prototype.onClosed = function (res) {
-    };
-    /** call when socket retry failed */
-    SocketClient.prototype.onFailed = function () {
-    };
-    /** call when get some message */
-    SocketClient.prototype.onMessage = function (msg, isOffline) {
-    };
-    /** call when isAuthFail is true when close */
-    SocketClient.prototype.onAuthFail = function () {
-    };
-    Object.defineProperty(SocketClient.prototype, "isConnected", {
-        get: function () {
-            return this._isConnected;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(SocketClient.prototype, "isConnecting", {
-        get: function () {
-            return this._isConnecting;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    return SocketClient;
-}());
-exports.SocketClient = SocketClient;
 var pop;
 (function (pop) {
+    /**
+     * @description show wating mask
+     * @param title the loading title @default '加载中'
+     */
+    pop.wait = function (title) {
+        wx.showLoading({ title: title || '加载中', mask: true });
+    };
+    /**
+     * @description hide the waiting mask .
+     */
+    pop.idle = function () {
+        wx.hideLoading();
+    };
+    /**
+     * @description to alert some err
+     * @param err the err to be display
+     */
+    pop.error = function (err) {
+        wx.showModal({ title: "提示", content: err.message || "服务异常", showCancel: false });
+    };
     /**
      * @description alert user some message
      * @param content the message to be show
@@ -882,26 +705,6 @@ var pop;
                 dismiss();
             }
         }, 1000);
-    };
-    /**
-     * @description to alert some err
-     * @param err the err to be display
-     */
-    pop.error = function (err) {
-        wx.showModal({ title: "提示", content: err.message || "服务异常", showCancel: false });
-    };
-    /**
-     * @description show wating mask
-     * @param title the loading title @default '加载中'
-     */
-    pop.waiting = function (title) {
-        wx.showLoading({ title: title || '加载中', mask: true });
-    };
-    /**
-     * @description hide the waiting mask .
-     */
-    pop.idling = function () {
-        wx.hideLoading();
     };
 })(pop = exports.pop || (exports.pop = {}));
 var orm;

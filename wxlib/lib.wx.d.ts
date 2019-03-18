@@ -7,12 +7,12 @@ declare namespace wx {
         [key: string]: any
     }
     interface BaseParams {
-        /**接口调用成功的回调函数 */
-        success?: (res?: any) => void;
         /**接口调用失败的回调函数 */
         fail?: (res?: any) => void;
+        /**接口调用成功的回调函数 */
+        success?: (res?: any) => void;
         /**接口调用结束的回调函数(调用成功/失败都会执行) */
-        complete?: Function;
+        complete?: (res?: any) => void;
     }
     interface ErrmsgParams extends BaseParams {
         success?: (res?: { errMsg: string }) => void;
@@ -40,6 +40,7 @@ declare namespace wx {
     }
     interface RequestTask {
         abort(): never;
+        onHeadersReceived: (callback: (headers: any) => void) => never
     }
     interface HttpHeader {
         /**GTM time str */
@@ -55,6 +56,14 @@ declare namespace wx {
         statusCode: number;
         header?: HttpHeader;
     }
+    interface UploadProgress {
+        progress: number;
+        totalBytesSent: number;
+        totalBytesExpectedToSend: number
+    }
+    interface UploadTask extends RequestTask {
+        onProgressUpdate?: (callback: (res: UploadProgress) => void) => never;
+    }
     interface UploadParam extends BaseParams {
         /**开发者服务器 url */
         url: string;
@@ -67,9 +76,13 @@ declare namespace wx {
         /**HTTP 请求中其他额外的 form data */
         formData?: Object;
     }
-    interface UploadTask {
-        onProgressUpdate: (res: { progress: number; totalBytesSent: number; totalBytesExpectedToSend: number; }) => never;
-        abort(): never;
+    interface DownloadProgress {
+        progress: number;
+        totalBytesWritten: number;
+        totalBytesExpectedToWrite: number
+    }
+    interface DownloadTask extends RequestTask {
+        onProgressUpdate?: (callback: (res: DownloadProgress) => void) => never;
     }
     interface DownloadParam extends BaseParams {
         /**下载资源的 url */
@@ -80,10 +93,6 @@ declare namespace wx {
         header?: Object;
         /**	下载成功后以 tempFilePath 的形式传给页面 res = { tempFilePath: '文件的临时路径' } */
         success?: (res?: { tempFilePath: string }) => void
-    }
-    interface DownloadTask {
-        onProgressUpdate: (res: { progress: number; totalBytesWritten: number; totalBytesExpectedToWrite: number; }) => never;
-        abort(): never;
     }
     interface ConnectSocketParam extends BaseParams {
         /**开发者服务器接口地址 必须是 HTTPS 协议 且域名必须是后台配置的合法域名 */

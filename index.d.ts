@@ -1,7 +1,4 @@
-interface InitalData {
-    [key: string]: any;
-}
-export declare class IApp {
+export declare class IApp implements wx.IApp {
     [other: string]: any;
 }
 /**
@@ -9,12 +6,12 @@ export declare class IApp {
  * @description global data will be inject to every Ipage.
  * @description if local Ipage provide the same variable it will overwrite
  */
-export declare function app(global?: InitalData): (target: new () => IApp) => void;
+export declare function app(global?: wx.IAnyObject): (target: new () => IApp) => void;
 export declare class IPage<D = any> implements wx.IPage {
     [other: string]: any;
-    readonly options: any;
+    readonly data: D & wx.IAnyObject;
     readonly route: string;
-    readonly data: D & InitalData;
+    readonly options: any;
     /**
      * @description `setData` 函数用于将数据从逻辑层发送到视图层（异步），同时改变对应的 `this.data` 的值（同步）。
      * @notice 直接修改 this.data 而不调用 this.setData 是无法改变页面的状态的，还会造成数据不一致
@@ -26,7 +23,7 @@ export declare class IPage<D = any> implements wx.IPage {
      * @param data 其中 `key` 可以以数据路径的形式给出，支持改变数组中的某一项或对象的某个属性，如 `array[2].message`，`a.b.c.d`，并且不需要在 this.data 中预先定义。
      * @param callback setData引起的界面更新渲染完毕后的回调函数，最低基础库： `1.5.0`
      */
-    readonly setData: <K extends keyof D>(data: (Pick<D, K> | D), callback?: () => void) => void;
+    readonly setData: <K extends keyof D>(data: D | Pick<D, K>, callback?: () => void) => void;
     readonly triggerEvent: (name: string, detail?: any) => void;
     readonly selectComponent: (selector: string) => any;
     readonly selectAllComponents: () => any[];
@@ -39,10 +36,10 @@ export declare class IPage<D = any> implements wx.IPage {
  * @description inject inital data to the Ipage'data field.
  * @description it will overwrite global data if possible
  */
-export declare function page(inital?: InitalData): (target: new () => IPage<any>) => void;
+export declare function page(inital?: wx.IAnyObject): (target: new () => IPage<any>) => void;
 export declare class Widget<D = any> implements wx.IComponent {
     [other: string]: any;
-    readonly data: D & InitalData;
+    readonly data: D & wx.IAnyObject;
     /**
      * @description `setData` 函数用于将数据从逻辑层发送到视图层（异步），同时改变对应的 `this.data` 的值（同步）。
      * @notice 直接修改 this.data 而不调用 this.setData 是无法改变页面的状态的，还会造成数据不一致
@@ -54,7 +51,7 @@ export declare class Widget<D = any> implements wx.IComponent {
      * @param data 其中 `key` 可以以数据路径的形式给出，支持改变数组中的某一项或对象的某个属性，如 `array[2].message`，`a.b.c.d`，并且不需要在 this.data 中预先定义。
      * @param callback setData引起的界面更新渲染完毕后的回调函数，最低基础库： `1.5.0`
      */
-    readonly setData: <K extends keyof D>(data: (Pick<D, K> | D), callback?: () => void) => void;
+    readonly setData: <K extends keyof D>(data: D | Pick<D, K>, callback?: () => void) => void;
     readonly triggerEvent: (name: string, detail?: any) => void;
     readonly selectComponent: (selector: string) => any;
     readonly selectAllComponents: () => any[];
@@ -66,7 +63,7 @@ export declare class Widget<D = any> implements wx.IComponent {
  * @default undefined
  * @description inject inital data to the Commponent data field.
  */
-export declare function widget(inital?: InitalData): (target: new () => Widget<any>) => void;
+export declare function widget(inital?: wx.IAnyObject): (target: new () => Widget<any>) => void;
 /**
  * @description the meta constructor of netowrk and storage
  */
@@ -90,13 +87,13 @@ export declare class Network {
      * @param resp the http response object
      */
     protected resolve(resp: wx.HttpResponse): any;
-    readonly upload: (file: Network.Upload, options?: Network.Options) => Promise<any>;
-    readonly anyreq: <T>(req: Network.Request<T>) => Promise<T>;
-    readonly objreq: <T>(req: Network.Request<T>) => Promise<T>;
-    readonly aryreq: <T>(req: Network.Request<T>) => Promise<T[]>;
-    readonly anytask: <T = any>(path: string, data?: any, options?: Network.Options) => Promise<T>;
-    readonly objtask: <T>(c: IMetaClass<T>, path: string, data?: any, options?: Network.Options) => Promise<T>;
-    readonly arytask: <T>(c: IMetaClass<T>, path: string, data?: any, options?: Network.Options) => Promise<T[]>;
+    readonly upload: (file: Network.Upload, options?: Network.Options) => Network.UploadTask;
+    readonly anyreq: <T>(req: Network.Request<T>) => Network.DataTask<T>;
+    readonly objreq: <T>(req: Network.Request<T>) => Network.DataTask<T>;
+    readonly aryreq: <T>(req: Network.Request<T>) => Network.DataTask<T[]>;
+    readonly anytask: <T = any>(path: string, data?: any, options?: Network.Options) => Network.DataTask<T>;
+    readonly objtask: <T>(c: IMetaClass<T>, path: string, data?: any, options?: Network.Options) => Network.DataTask<T>;
+    readonly arytask: <T>(c: IMetaClass<T>, path: string, data?: any, options?: Network.Options) => Network.DataTask<T[]>;
 }
 export declare namespace Network {
     type Method = 'POST' | 'GET';
@@ -120,8 +117,8 @@ export declare namespace Network {
      * @param timestamp if true .the timestamp in http header will be return to result @default false
      */
     interface Options {
-        readonly loading?: boolean | string;
         readonly method?: Method;
+        readonly loading?: boolean | string;
         readonly timestamp?: boolean;
     }
     /**
@@ -136,6 +133,28 @@ export declare namespace Network {
         readonly meta: IMetaClass<T> | T;
         readonly data?: any;
         readonly options?: Options;
+    }
+    /**
+     * @description the progress desc
+     * @param value the progress value between 0 and 1
+     * @param count the complete count
+     * @param total the total count
+     */
+    interface Progress {
+        readonly value: number;
+        readonly count: number;
+        readonly total: number;
+    }
+    class DataTask<T> extends Promise<T> {
+        private readonly handler;
+        readonly abort: () => void;
+        readonly onHeaders: (func: (headers: any) => void) => void;
+    }
+    class UploadTask extends Promise<any> {
+        private readonly handler;
+        readonly abort: () => void;
+        readonly onHeaders: (func: (headers: any) => void) => void;
+        readonly onProgress: (func: (progress: Progress) => void) => void;
     }
 }
 export declare class Socket {
@@ -279,83 +298,21 @@ export declare namespace Socket {
         readonly start: () => void;
     }
 }
-export declare class SocketClient {
-    private _url;
-    private _isConnected;
-    private _isConnecting;
-    private observers;
-    private timer;
-    private pingTimeout;
-    private task;
-    private attemptTimes;
-    private addObserve;
-    private affterClose;
-    private close;
-    private attempt;
-    private reattemp;
-    private timerFunc;
-    private connect;
-    private log;
-    protected handle: (msg: any, isOffline: boolean) => void;
-    /**
-     * @default 10
-     * @description the max attempt times
-     */
-    protected maxAttemptTimes: number;
-    /**
-     * @default 30
-     * @description the heartbeat interal
-     */
-    protected heartbeatInterval: number;
-    /**
-     * subclass must impl this method to resolve url
-     * you must provide connect url
-     */
-    protected setURL(url: string): void;
-    /**
-     * @default false
-     * @description you mast tell me the login status
-     */
-    protected readonly isLogin: boolean;
-    /**
-     * @default true
-     * @description print debug info or not
-     */
-    protected readonly isDebug: boolean;
-    /**
-     * @default impl is return res.code === 4001 || res.code === 4002,4001,4002 is the default auth fail code
-     * @description If get true socket will not attempt again. At this time didLogout will be call!
-     */
-    protected isAuthFail(res: wx.SocketClose): boolean;
-    /** call when some error occur */
-    protected onError(res: wx.SocketError): void;
-    /** call when socket closed .  */
-    protected onOpened(res: any): void;
-    /** call when socket closed */
-    protected onClosed(res: wx.SocketClose): void;
-    /** call when socket retry failed */
-    protected onFailed(): void;
-    /** call when get some message */
-    protected onMessage(msg: any, isOffline: boolean): void;
-    /** call when isAuthFail is true when close */
-    protected onAuthFail(): void;
-    readonly isConnected: boolean;
-    readonly isConnecting: boolean;
-    /**
-     * @description start the socket monitor.
-     * try to connect the socket server.
-     * the heartbeat mechanism will be work
-     */
-    readonly start: () => void;
-    /**
-     * @description stop the socket monitor.
-     * stop heartbeat mechanism
-     */
-    readonly stop: () => void;
-    readonly on: (evt: "open" | "error" | "close" | "failed" | "message", target: any, callback: Function) => void;
-    readonly off: (evt: "open" | "error" | "close" | "failed" | "message", target: any) => void;
-}
 export declare namespace pop {
+    /**
+     * @description show wating mask
+     * @param title the loading title @default '加载中'
+     */
+    const wait: (title?: string) => void;
+    /**
+     * @description hide the waiting mask .
+     */
+    const idle: () => void;
+    /**
+     * @description to alert some err
+     * @param err the err to be display
+     */
+    const error: (err: Error) => void;
     /**
      * @description alert user some message
      * @param content the message to be show
@@ -375,20 +332,6 @@ export declare namespace pop {
      * @param dismiss the callback of affter auto dismiss
      */
     const remind: (ok: string, dismiss?: () => void) => void;
-    /**
-     * @description to alert some err
-     * @param err the err to be display
-     */
-    const error: (err: Error) => void;
-    /**
-     * @description show wating mask
-     * @param title the loading title @default '加载中'
-     */
-    const waiting: (title?: string) => void;
-    /**
-     * @description hide the waiting mask .
-     */
-    const idling: () => void;
 }
 export declare namespace orm {
     /**
@@ -442,4 +385,3 @@ export declare namespace orm {
      */
     const remove: <T>(cls: IMetaClass<T>, id: string | number) => void;
 }
-export {};

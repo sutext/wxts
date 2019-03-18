@@ -1,39 +1,28 @@
-function trim(obj: any): any {
-    const result: any = {}
-    for (const key in obj) {
-        if (key !== 'constructor') {
-            result[key] = obj[key]
-        }
-    }
-    return result
-}
-interface InitalData {
-    [key: string]: any
-}
-
-export class IApp {
+let globalData: wx.IAnyObject
+export class IApp implements wx.IApp {
     [other: string]: any
 }
-let globalData: InitalData
 /**
  * @default {}
  * @description global data will be inject to every Ipage.
  * @description if local Ipage provide the same variable it will overwrite
  */
-export function app(global?: InitalData) {
+export function app(global?: wx.IAnyObject) {
     if (globalData) {
         throw new Error('you can only register one app!!!!')
     }
     globalData = global || {}
     return function (target: new () => IApp) {
-        App(trim(new target()))
+        const param = new target()
+        delete param.constructor
+        App(param)
     }
 }
 export class IPage<D=any> implements wx.IPage {
     [other: string]: any
-    public readonly options: any
+    public readonly data: D & wx.IAnyObject
     public readonly route: string
-    public readonly data: D & InitalData
+    public readonly options: any
     /**
      * @description `setData` 函数用于将数据从逻辑层发送到视图层（异步），同时改变对应的 `this.data` 的值（同步）。
      * @notice 直接修改 this.data 而不调用 this.setData 是无法改变页面的状态的，还会造成数据不一致
@@ -45,7 +34,7 @@ export class IPage<D=any> implements wx.IPage {
      * @param data 其中 `key` 可以以数据路径的形式给出，支持改变数组中的某一项或对象的某个属性，如 `array[2].message`，`a.b.c.d`，并且不需要在 this.data 中预先定义。
      * @param callback setData引起的界面更新渲染完毕后的回调函数，最低基础库： `1.5.0` 
      */
-    public readonly setData: <K extends keyof D>(data: (Pick<D, K> | D), callback?: () => void) => void;
+    public readonly setData: <K extends keyof D>(data: D | Pick<D, K>, callback?: () => void) => void;
     public readonly triggerEvent: (name: string, detail?: any) => void
     public readonly selectComponent: (selector: string) => any
     public readonly selectAllComponents: () => any[]
@@ -58,18 +47,19 @@ export class IPage<D=any> implements wx.IPage {
  * @description inject inital data to the Ipage'data field.
  * @description it will overwrite global data if possible
  */
-export function page(inital?: InitalData) {
+export function page(inital?: wx.IAnyObject) {
     return function (target: new () => IPage) {
         const param = new target()
-        const global = {}
-        Object.assign(global, globalData, inital, param.data)
-        Object.assign(param, { data: global })
-        Page(trim(param))
+        delete param.constructor
+        const data = {}
+        Object.assign(data, globalData, inital, param.data)
+        Object.assign(param, { data })
+        Page(param)
     }
 }
 export class Widget<D=any> implements wx.IComponent {
     [other: string]: any
-    public readonly data: D & InitalData
+    public readonly data: D & wx.IAnyObject
     /**
      * @description `setData` 函数用于将数据从逻辑层发送到视图层（异步），同时改变对应的 `this.data` 的值（同步）。
      * @notice 直接修改 this.data 而不调用 this.setData 是无法改变页面的状态的，还会造成数据不一致
@@ -81,7 +71,7 @@ export class Widget<D=any> implements wx.IComponent {
      * @param data 其中 `key` 可以以数据路径的形式给出，支持改变数组中的某一项或对象的某个属性，如 `array[2].message`，`a.b.c.d`，并且不需要在 this.data 中预先定义。
      * @param callback setData引起的界面更新渲染完毕后的回调函数，最低基础库： `1.5.0` 
      */
-    public readonly setData: <K extends keyof D>(data: (Pick<D, K> | D), callback?: () => void) => void;
+    public readonly setData: <K extends keyof D>(data: D | Pick<D, K>, callback?: () => void) => void;
     public readonly triggerEvent: (name: string, detail?: any) => void
     public readonly selectComponent: (selector: string) => any
     public readonly selectAllComponents: () => any[]
@@ -94,7 +84,7 @@ const keys = ['properties', 'data', 'behaviors', 'created', 'attached', 'ready',
  * @default undefined
  * @description inject inital data to the Commponent data field.
  */
-export function widget(inital?: InitalData) {
+export function widget(inital?: wx.IAnyObject) {
     return function (target: new () => Widget) {
         const param = new target()
         const result: any = { methods: {} }
@@ -108,17 +98,9 @@ export function widget(inital?: InitalData) {
                 result.methods[key] = param[key]
             }
         }
-        if (inital) {
-            const data = result.data
-            if (data) {
-                Object.assign(inital, data)
-            } else {
-                Object.assign(result, { data: inital })
-            }
-        }
-        const global = {}
-        Object.assign(global, globalData, inital, result.data)
-        Object.assign(result, { data: global })
+        const data = {}
+        Object.assign(data, inital, result.data)
+        Object.assign(result, { data })
         Component(result)
     }
 }
@@ -153,18 +135,19 @@ export class Network {
     protected resolve(resp: wx.HttpResponse): any {
         throw new Error('Network.resolve must be implement')
     }
-    public readonly upload = (file: Network.Upload, options?: Network.Options): Promise<any> => {
+    public readonly upload = (file: Network.Upload, options?: Network.Options) => {
         wx.showNavigationBarLoading()
-        if (options && options.loading) pop.waiting(typeof options.loading === 'string' ? options.loading : undefined)
-        return new Promise((resolve, reject) => {
-            wx.uploadFile({
+        if (options && options.loading) pop.wait(typeof options.loading === 'string' ? options.loading : undefined)
+        let handler: wx.UploadTask
+        const task = new Network.UploadTask((resolve, reject) => {
+            handler = wx.uploadFile({
                 name: file.name,
                 header: this.headers,
                 url: this.url(file.path),
                 filePath: file.file,
                 complete: res => {
                     wx.hideNavigationBarLoading()
-                    if (options && options.loading) pop.idling()
+                    if (options && options.loading) pop.idle()
                     try {
                         res.data = JSON.parse(res.data)
                         const value = this.resolve(res)
@@ -174,7 +157,10 @@ export class Network {
                     }
                 },
             })
-        })
+        });
+        //@ts-ignore
+        task.handler = handler
+        return task
     }
     public readonly anyreq = <T>(req: Network.Request<T>) => {
         return this.anytask<T>(req.path, req.data, req.options)
@@ -187,18 +173,19 @@ export class Network {
         if (typeof req.meta !== 'function') throw new Error('the req of aryreq must be Function')
         return this.arytask(req.meta as IMetaClass<T>, req.path, req.data, req.options)
     }
-    public readonly anytask = <T = any>(path: string, data?: any, options?: Network.Options): Promise<T> => {
+    public readonly anytask = <T = any>(path: string, data?: any, options?: Network.Options) => {
         wx.showNavigationBarLoading()
-        if (options && options.loading) pop.waiting(typeof options.loading === 'string' ? options.loading : undefined)
-        return new Promise((resolve, reject) => {
-            wx.request({
+        if (options && options.loading) pop.wait(typeof options.loading === 'string' ? options.loading : undefined)
+        let handler: wx.RequestTask
+        const task = new Network.DataTask<T>((resolve, reject) => {
+            handler = wx.request({
                 url: this.url(path),
                 header: this.headers,
                 data: data,
                 method: options && options.method ? options.method : this.method,
                 complete: result => {
                     wx.hideNavigationBarLoading()
-                    if (options && options.loading) pop.idling()
+                    if (options && options.loading) pop.idle()
                     try {
                         const value = this.resolve(result)
                         if (options && options.timestamp && value && result.header && result.header.Date) {
@@ -211,19 +198,23 @@ export class Network {
                 }
             })
         });
+        //@ts-ignore
+        task.handler = handler
+        return task
     }
-    public readonly objtask = <T>(c: IMetaClass<T>, path: string, data?: any, options?: Network.Options): Promise<T> => {
+    public readonly objtask = <T>(c: IMetaClass<T>, path: string, data?: any, options?: Network.Options) => {
         wx.showNavigationBarLoading()
-        if (options && options.loading) pop.waiting(typeof options.loading === 'string' ? options.loading : undefined)
-        return new Promise((resolve, reject) => {
-            wx.request({
+        if (options && options.loading) pop.wait(typeof options.loading === 'string' ? options.loading : undefined)
+        let handler: wx.RequestTask
+        const task = new Network.DataTask<T>((resolve, reject) => {
+            handler = wx.request({
                 url: this.url(path),
                 header: this.headers,
                 data: data,
                 method: options && options.method ? options.method : this.method,
                 complete: result => {
                     wx.hideNavigationBarLoading()
-                    if (options && options.loading) pop.idling()
+                    if (options && options.loading) pop.idle()
                     try {
                         const value = this.resolve(result)
                         if (options && options.timestamp && value && result.header && result.header.Date) {
@@ -236,19 +227,23 @@ export class Network {
                 },
             })
         });
+        //@ts-ignore
+        task.handler = handler
+        return task
     }
-    public readonly arytask = <T>(c: IMetaClass<T>, path: string, data?: any, options?: Network.Options): Promise<T[]> => {
+    public readonly arytask = <T>(c: IMetaClass<T>, path: string, data?: any, options?: Network.Options) => {
         wx.showNavigationBarLoading()
-        if (options && options.loading) pop.waiting(typeof options.loading === 'string' ? options.loading : undefined)
-        return new Promise((resolve, reject) => {
-            wx.request({
+        if (options && options.loading) pop.wait(typeof options.loading === 'string' ? options.loading : undefined)
+        let handler: wx.RequestTask
+        const task = new Network.DataTask<T[]>((resolve, reject) => {
+            handler = wx.request({
                 url: this.url(path),
                 header: this.headers,
                 data: data,
                 method: options && options.method ? options.method : this.method,
                 complete: result => {
                     wx.hideNavigationBarLoading()
-                    if (options && options.loading) pop.idling()
+                    if (options && options.loading) pop.idle()
                     try {
                         const value = this.resolve(result)
                         if (value && value.length > 0) {
@@ -262,6 +257,9 @@ export class Network {
                 }
             })
         });
+        //@ts-ignore
+        task.handler = handler
+        return task
     }
 }
 export namespace Network {
@@ -286,8 +284,8 @@ export namespace Network {
      * @param timestamp if true .the timestamp in http header will be return to result @default false
      */
     export interface Options {
-        readonly loading?: boolean | string
         readonly method?: Method
+        readonly loading?: boolean | string
         readonly timestamp?: boolean
     }
     /**
@@ -302,6 +300,38 @@ export namespace Network {
         readonly meta: IMetaClass<T> | T
         readonly data?: any
         readonly options?: Options
+    }
+    /**
+     * @description the progress desc
+     * @param value the progress value between 0 and 1
+     * @param count the complete count
+     * @param total the total count
+     */
+    export interface Progress {
+        readonly value: number
+        readonly count: number
+        readonly total: number
+    }
+    export class DataTask<T> extends Promise<T>{
+        private readonly handler: wx.RequestTask
+        readonly abort = () => {
+            this.handler.abort()
+        }
+        readonly onHeaders = (func: (headers: any) => void) => {
+            this.handler.onHeadersReceived(func)
+        }
+    }
+    export class UploadTask extends Promise<any>{
+        private readonly handler: wx.UploadTask
+        readonly abort = () => {
+            this.handler.abort()
+        }
+        readonly onHeaders = (func: (headers: any) => void) => {
+            this.handler.onHeadersReceived(func)
+        }
+        readonly onProgress = (func: (progress: Progress) => void) => {
+            this.handler.onProgressUpdate(res => func({ value: res.progress, count: res.totalBytesSent, total: res.totalBytesExpectedToSend }))
+        }
     }
 }
 export class Socket {
@@ -606,242 +636,27 @@ export namespace Socket {
         }
     }
 }
-
-export class SocketClient {
-    private _url: string
-    private _isConnected: boolean = false;
-    private _isConnecting: boolean = false;
-    private observers: Socket.Observers = new Socket.Observers()
-    private timer: number = null;
-    private pingTimeout: number = null;
-    private task: wx.SocketTask
-    private attemptTimes: number;
-    private addObserve = () => {
-        if (!this.task) {
-            return
-        }
-        this.task.onOpen(res => {
-            this.log('WebSocket连接已打开！', res);
-            this._isConnecting = false;
-            this._isConnected = true;
-            this.onOpened(res)
-        })
-        this.task.onError(res => {
-            this.log('WebSocket连接打开失败，请检查！', res);
-            this._isConnected = false;
-            this._isConnecting = false;
-            this.onError(res)
-        })
-        this.task.onMessage(res => {
-            if (typeof res.data === "string") {
-                try {
-                    this.handle(JSON.parse(res.data), false)
-                } catch (error) {
-                    this.log(error)
-                }
-            }
-            this.log('收到WebSocket消息：', res);
-        })
-        this.task.onClose(res => {
-            this.log('WebSocket 已关闭！', res);
-            if (this.isAuthFail(res)) {
-                this.stop()
-                this.onAuthFail()
-                return
-            }
-            this.affterClose()
-        })
-    }
-    private affterClose = () => {
-        this._isConnected = false;
-        this._isConnecting = false;
-        this.task = null
-        setTimeout(() => {
-            this.attempt();
-        }, 1000);
-    }
-    private close = () => {
-        if (!this.task) {
-            return
-        }
-        this.task.close({
-            fail: res => {
-                this.affterClose()
-            }
-        })
-    }
-    private attempt = () => {
-        if (this.attemptTimes > this.maxAttemptTimes) {
-            pop.alert('网络连接失败，请重试', () => this.reattemp())
-            this.onFailed()
-            return
-        }
-        this.connect()
-    }
-    private reattemp = () => {
-        this.attemptTimes = 0
-        this.attempt()
-    }
-    private timerFunc = () => {
-        if (!this._isConnected) {
-            this.attempt();
-            return
-        }
-        if (this.pingTimeout) {
-            return
-        }
-        let data: any = "{\"type\":\"PING\"}"
-        this.task.send({ data })
-        this.pingTimeout = setTimeout(() => {
-            this.log("ping 超时");
-            this.pingTimeout = null;
-            this.close()
-        }, 3 * 1000);
-    }
-    private connect = () => {
-        if (!this.isLogin) {
-            return
-        }
-        if (!this.timer) {
-            return;
-        }
-        if (this._isConnected) {
-            return
-        }
-        if (this._isConnecting) {
-            return
-        }
-        this._isConnecting = true;
-        this.task = wx.connectSocket({ url: this._url });
-        this.addObserve()
-        this.attemptTimes += 1;
-    }
-    private log(msg: any, other?: any) {
-        if (this.isDebug) {
-            console.log(msg, other || '')
-        }
-    }
-    protected handle = (msg: any, isOffline: boolean) => {
-        if (msg.type == "PONG") {
-            if (this.pingTimeout) {
-                clearTimeout(this.pingTimeout)
-                this.pingTimeout = null
-            }
-            this.log("收到pong消息：", msg);
-            return
-        }
-        this.onMessage(msg, isOffline)
-        this.observers.message.forEach(ele => ele.callback.call(ele.target))
-    }
-    /**
-     * @default 10
-     * @description the max attempt times
-     */
-    protected maxAttemptTimes: number = 10
-    /**
-     * @default 30
-     * @description the heartbeat interal
-     */
-    protected heartbeatInterval: number = 30
-    /**
-     * subclass must impl this method to resolve url
-     * you must provide connect url 
-     */
-    protected setURL(url: string) {
-        this._url = url
-    }
-    /**
-     * @default false
-     * @description you mast tell me the login status
-     */
-    protected get isLogin(): boolean {
-        return false
-    }
-    /**
-     * @default true
-     * @description print debug info or not
-     */
-    protected get isDebug(): boolean {
-        return true
-    }
-    /** 
-     * @default impl is return res.code === 4001 || res.code === 4002,4001,4002 is the default auth fail code 
-     * @description If get true socket will not attempt again. At this time didLogout will be call!
-     */
-    protected isAuthFail(res: wx.SocketClose): boolean {
-        return res.code === 4001 || res.code === 4002
-    }
-    /** call when some error occur */
-    protected onError(res: wx.SocketError) {
-
-    }
-    /** call when socket closed .  */
-    protected onOpened(res: any) {
-
-    }
-    /** call when socket closed */
-    protected onClosed(res: wx.SocketClose) {
-
-    }
-    /** call when socket retry failed */
-    protected onFailed() {
-
-    }
-    /** call when get some message */
-    protected onMessage(msg: any, isOffline: boolean) {
-
-    }
-    /** call when isAuthFail is true when close */
-    protected onAuthFail() {
-
-    }
-    public get isConnected(): boolean {
-        return this._isConnected
-    }
-    public get isConnecting(): boolean {
-        return this._isConnecting
-    }
-    /**
-     * @description start the socket monitor. 
-     * try to connect the socket server.
-     * the heartbeat mechanism will be work
-     */
-    public readonly start = () => {
-        if (this.timer) {
-            return;
-        }
-        this.timer = setInterval(() => {
-            this.timerFunc();
-        }, 1000 * this.heartbeatInterval);
-        this.attemptTimes = 0
-        this.timerFunc();
-    }
-    /**
-     * @description stop the socket monitor. 
-     * stop heartbeat mechanism
-     */
-    public readonly stop = () => {
-        if (!this.timer) {
-            return;
-        }
-        clearInterval(this.timer)
-        this.timer = null
-        this.close()
-    }
-    public readonly on = (evt: Socket.Events, target: any, callback: Function) => {
-        const idx = this.observers[evt].findIndex(ele => ele.target === target)
-        if (idx === -1) {
-            this.observers[evt].push({ callback, target })
-        }
-    }
-    public readonly off = (evt: Socket.Events, target: any) => {
-        const idx = this.observers[evt].findIndex(ele => ele.target === target)
-        if (idx !== -1) {
-            this.observers[evt].splice(idx, 1)
-        }
-    }
-}
 export namespace pop {
+    /**
+     * @description show wating mask
+     * @param title the loading title @default '加载中'
+     */
+    export const wait = (title?: string) => {
+        wx.showLoading({ title: title || '加载中', mask: true })
+    }
+    /**
+     * @description hide the waiting mask . 
+     */
+    export const idle = () => {
+        wx.hideLoading()
+    }
+    /**
+     * @description to alert some err 
+     * @param err the err to be display
+     */
+    export const error = (err: Error) => {
+        wx.showModal({ title: "提示", content: err.message || "服务异常", showCancel: false })
+    }
     /**
      * @description alert user some message
      * @param content the message to be show
@@ -879,26 +694,6 @@ export namespace pop {
                 dismiss()
             }
         }, 1000);
-    }
-    /**
-     * @description to alert some err 
-     * @param err the err to be display
-     */
-    export const error = (err: Error) => {
-        wx.showModal({ title: "提示", content: err.message || "服务异常", showCancel: false })
-    }
-    /**
-     * @description show wating mask
-     * @param title the loading title @default '加载中'
-     */
-    export const waiting = (title?: string) => {
-        wx.showLoading({ title: title || '加载中', mask: true })
-    }
-    /**
-     * @description hide the waiting mask . 
-     */
-    export const idling = () => {
-        wx.hideLoading()
     }
 }
 export namespace orm {
