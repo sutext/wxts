@@ -90,7 +90,7 @@ export declare class Network {
     readonly anyreq: <T>(req: Network.Request<T>) => Network.DataTask<T>;
     readonly objreq: <T>(req: Network.Request<T>) => Network.DataTask<T>;
     readonly aryreq: <T>(req: Network.Request<T>) => Network.DataTask<T[]>;
-    readonly upload: (file: Network.Upload, loading: string | boolean) => Network.UploadTask;
+    readonly upload: (file: Network.Upload, loading?: string | boolean) => Network.UploadTask;
     readonly anytask: <T = any>(path: string, data?: any, options?: Network.Options) => Network.DataTask<T>;
     readonly objtask: <T>(c: IMetaClass<T>, path: string, data?: any, options?: Network.Options) => Network.DataTask<T>;
     readonly arytask: <T>(c: IMetaClass<T>, path: string, data?: any, options?: Network.Options) => Network.DataTask<T[]>;
@@ -160,7 +160,7 @@ export declare namespace Network {
     }
     class DataTask<T> implements PromiseLike<T> {
         private readonly promiss;
-        protected readonly handler: wx.RequestTask;
+        private readonly handler;
         readonly [Symbol.toStringTag]: 'Promise';
         constructor(promiss: Promise<T>, handler: wx.RequestTask);
         readonly then: <TResult1 = T, TResult2 = never>(onfulfilled?: (value: T) => TResult1 | PromiseLike<TResult1>, onrejected?: (reason: any) => TResult2 | PromiseLike<TResult2>) => Promise<TResult1 | TResult2>;
@@ -169,12 +169,10 @@ export declare namespace Network {
         readonly onHeaders: (func: (headers: any) => void) => void;
     }
     class UploadTask extends DataTask<any> {
-        protected readonly handler: wx.UploadTask;
         constructor(promiss: Promise<any>, handler: wx.UploadTask);
         readonly onProgress: (callback: (progress: Progress) => void) => void;
     }
     class DownloadTask extends DataTask<string> {
-        protected readonly handler: wx.DownloadTask;
         constructor(promiss: Promise<string>, handler: wx.DownloadTask);
         readonly onProgress: (callback: (progress: Progress) => void) => void;
     }

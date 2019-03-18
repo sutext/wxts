@@ -327,7 +327,8 @@ exports.Network = Network;
         function UploadTask(promiss, handler) {
             var _this = _super.call(this, promiss, handler) || this;
             _this.onProgress = function (callback) {
-                _this.handler.onProgressUpdate(function (res) { return callback({
+                var handler = _this['handler'];
+                handler.onProgressUpdate(function (res) { return callback({
                     value: res.progress,
                     count: res.totalBytesSent,
                     total: res.totalBytesExpectedToSend,
@@ -343,7 +344,8 @@ exports.Network = Network;
         function DownloadTask(promiss, handler) {
             var _this = _super.call(this, promiss, handler) || this;
             _this.onProgress = function (callback) {
-                _this.handler.onProgressUpdate(function (res) { return callback({
+                var handler = _this['handler'];
+                handler.onProgressUpdate(function (res) { return callback({
                     value: res.progress,
                     count: res.totalBytesWritten,
                     total: res.totalBytesExpectedToWrite,

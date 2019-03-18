@@ -152,7 +152,7 @@ export class Network {
         if (typeof req.meta !== 'function') throw new Error('the req of aryreq must be Function')
         return this.arytask(req.meta as IMetaClass<T>, req.path, req.data, req.options)
     }
-    public readonly upload = (file: Network.Upload, loading: string | boolean) => {
+    public readonly upload = (file: Network.Upload, loading?: string | boolean) => {
         wx.showNavigationBarLoading()
         if (loading) pop.wait(typeof loading === 'string' ? loading : undefined)
         let handler: wx.UploadTask
@@ -348,7 +348,7 @@ export namespace Network {
     }
     export class DataTask<T> implements PromiseLike<T>{
         private readonly promiss: Promise<T>
-        protected readonly handler: wx.RequestTask
+        private readonly handler: wx.RequestTask
         public readonly [Symbol.toStringTag]: 'Promise' = 'Promise'
         constructor(promiss: Promise<T>, handler: wx.RequestTask) {
             this.promiss = promiss
@@ -368,12 +368,12 @@ export namespace Network {
         }
     }
     export class UploadTask extends DataTask<any>{
-        protected readonly handler: wx.UploadTask
         constructor(promiss: Promise<any>, handler: wx.UploadTask) {
             super(promiss, handler)
         }
         public readonly onProgress = (callback: (progress: Progress) => void) => {
-            this.handler.onProgressUpdate(res => callback({
+            const handler = this['handler'] as wx.UploadTask
+            handler.onProgressUpdate(res => callback({
                 value: res.progress,
                 count: res.totalBytesSent,
                 total: res.totalBytesExpectedToSend,
@@ -381,12 +381,12 @@ export namespace Network {
         }
     }
     export class DownloadTask extends DataTask<string>{
-        protected readonly handler: wx.DownloadTask
         constructor(promiss: Promise<string>, handler: wx.DownloadTask) {
             super(promiss, handler)
         }
         public readonly onProgress = (callback: (progress: Progress) => void) => {
-            this.handler.onProgressUpdate(res => callback({
+            const handler = this['handler'] as wx.DownloadTask
+            handler.onProgressUpdate(res => callback({
                 value: res.progress,
                 count: res.totalBytesWritten,
                 total: res.totalBytesExpectedToWrite,
