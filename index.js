@@ -120,18 +120,20 @@ var Network = /** @class */ (function () {
         };
         this.objreq = function (req) {
             if (typeof req.meta !== 'function')
-                throw new Error('the req of objreq must be Function');
+                throw new Error('the meta of objreq must be a class value');
             return _this.objtask(req.meta, req.path, req.data, req.options);
         };
         this.aryreq = function (req) {
             if (typeof req.meta !== 'function')
-                throw new Error('the req of aryreq must be Function');
+                throw new Error('the meta of aryreq must be class value');
             return _this.arytask(req.meta, req.path, req.data, req.options);
         };
-        this.upload = function (file, loading) {
+        this.upload = function (file, options) {
             wx.showNavigationBarLoading();
-            if (loading)
+            var loading = options && options.loading;
+            if (options && options.loading) {
                 pop.wait(typeof loading === 'string' ? loading : undefined);
+            }
             var handler;
             var promiss = new Promise(function (resolve, reject) {
                 handler = wx.uploadFile({
@@ -145,7 +147,8 @@ var Network = /** @class */ (function () {
                         pop.idle();
                         try {
                             res.data = JSON.parse(res.data);
-                            var value = _this.resolve(res);
+                            var parser = options && options.parser || _this.resolve.bind(_this);
+                            var value = parser(res);
                             resolve(value);
                         }
                         catch (error) {
@@ -158,8 +161,10 @@ var Network = /** @class */ (function () {
         };
         this.anytask = function (path, data, options) {
             wx.showNavigationBarLoading();
-            if (options && options.loading)
-                pop.wait(typeof options.loading === 'string' ? options.loading : undefined);
+            var loading = options && options.loading;
+            if (options && options.loading) {
+                pop.wait(typeof loading === 'string' ? loading : undefined);
+            }
             var handler;
             var promiss = new Promise(function (resolve, reject) {
                 handler = wx.request({
@@ -172,7 +177,8 @@ var Network = /** @class */ (function () {
                         if (options && options.loading)
                             pop.idle();
                         try {
-                            var value = _this.resolve(result);
+                            var parser = options && options.parser || _this.resolve.bind(_this);
+                            var value = parser(result);
                             if (options && options.timestamp && value && result.header && result.header.Date) {
                                 value.timestamp = new Date(result.header.Date).getTime();
                             }
@@ -188,8 +194,10 @@ var Network = /** @class */ (function () {
         };
         this.objtask = function (c, path, data, options) {
             wx.showNavigationBarLoading();
-            if (options && options.loading)
-                pop.wait(typeof options.loading === 'string' ? options.loading : undefined);
+            var loading = options && options.loading;
+            if (options && options.loading) {
+                pop.wait(typeof loading === 'string' ? loading : undefined);
+            }
             var handler;
             var promiss = new Promise(function (resolve, reject) {
                 handler = wx.request({
@@ -202,7 +210,8 @@ var Network = /** @class */ (function () {
                         if (options && options.loading)
                             pop.idle();
                         try {
-                            var value = _this.resolve(result);
+                            var parser = options && options.parser || _this.resolve.bind(_this);
+                            var value = parser(result);
                             if (options && options.timestamp && value && result.header && result.header.Date) {
                                 value.timestamp = new Date(result.header.Date).getTime();
                             }
@@ -218,8 +227,10 @@ var Network = /** @class */ (function () {
         };
         this.arytask = function (c, path, data, options) {
             wx.showNavigationBarLoading();
-            if (options && options.loading)
-                pop.wait(typeof options.loading === 'string' ? options.loading : undefined);
+            var loading = options && options.loading;
+            if (options && options.loading) {
+                pop.wait(typeof loading === 'string' ? loading : undefined);
+            }
             var handler;
             var promiss = new Promise(function (resolve, reject) {
                 handler = wx.request({
@@ -232,7 +243,8 @@ var Network = /** @class */ (function () {
                         if (options && options.loading)
                             pop.idle();
                         try {
-                            var value = _this.resolve(result);
+                            var parser = options && options.parser || _this.resolve.bind(_this);
+                            var value = parser(result);
                             if (value && value.length > 0) {
                                 resolve(value.map(function (e) { return new c(e); }));
                             }
@@ -248,10 +260,12 @@ var Network = /** @class */ (function () {
             });
             return new Network.DataTask(promiss, handler);
         };
-        this.download = function (opts, loading) {
+        this.download = function (opts, options) {
             wx.showNavigationBarLoading();
-            if (loading)
+            var loading = options && options.loading;
+            if (options && options.loading) {
                 pop.wait(typeof loading === 'string' ? loading : undefined);
+            }
             var handler;
             var promiss = new Promise(function (resolve, reject) {
                 handler = wx.downloadFile(__assign({}, opts, { complete: function (res) {
@@ -269,6 +283,19 @@ var Network = /** @class */ (function () {
         };
     }
     Object.defineProperty(Network.prototype, "headers", {
+        /**
+         * @override point you shoud overwrite this property and provide you custom headers
+         * @example
+         * **示例代码*
+         * ``
+         * protected get headers(): any {
+         *     return {
+         *         token:'yourtoken',
+         *         account:'youraccount'
+         *     }
+         * }
+         * ``
+         */
         get: function () {
             return {};
         },
@@ -276,6 +303,16 @@ var Network = /** @class */ (function () {
         configurable: true
     });
     Object.defineProperty(Network.prototype, "method", {
+        /**
+         * @override point you shoud overwrite this property and provide you custom headers
+         * @example
+         * **示例代码*
+         * ``
+         * protected get method(): any {
+         *     return 'POST'
+         * }
+         * ``
+         */
         get: function () {
             return 'POST';
         },
@@ -447,7 +484,6 @@ exports.Socket = Socket;
             this.open = [];
             this.error = [];
             this.close = [];
-            this.failed = [];
             this.message = [];
         }
         return Observers;
@@ -513,15 +549,15 @@ exports.Socket = Socket;
                     return;
                 var data = "{\"type\":\"PING\"}";
                 _this.socket.send(data);
-                console.log('发送 PING:', data);
+                sys.log('发送 PING:', data);
                 _this.timeout = setTimeout(function () {
-                    console.log('PING 超时');
+                    sys.log('PING 超时');
                     _this.timeout = null;
                     _this.socket.close(1006);
                 }, 3 * 1000);
             };
             this.receive = function (msg) {
-                console.log("收到 PONG", msg);
+                sys.log("收到 PONG", msg);
                 if (!_this.allow || !_this.timeout)
                     return;
                 clearTimeout(_this.timeout);
@@ -593,15 +629,15 @@ exports.Socket = Socket;
             this.socket = new Socket(function () { return _this.buildurl(); });
             this.ping = new Ping(this.socket, this.allowPing);
             this.socket.onopen = function (evt, isRetry) {
-                console.log('Socket Client 连接已打开！', evt);
+                sys.log('Socket Client 连接已打开！', evt);
                 _this.onOpened(evt, isRetry);
             };
             this.socket.onerror = function (evt) {
-                console.log('Socket Client 连接打开失败，请检查！', evt);
+                sys.warn('Socket Client 连接打开失败，请检查！', evt);
                 _this.onError(evt);
             };
             this.socket.onmessage = function (evt) {
-                console.log('Socket Client 收到消息：', evt);
+                sys.log('Socket Client 收到消息：', evt);
                 if (typeof evt.data !== "string")
                     return;
                 var msg = JSON.parse(evt.data);
@@ -613,26 +649,16 @@ exports.Socket = Socket;
                 }
             };
             this.socket.onclose = function (evt) {
-                console.log('Socket Client  已关闭！', evt);
+                sys.log('Socket Client  已关闭！', evt);
                 _this.ping.stop();
                 _this.onClosed(evt);
             };
             this.socket.onfailed = function (etv) {
-                console.log('Socket Client 重连超时！');
+                sys.log('Socket Client 重连超时！');
                 _this.ping.stop();
                 _this.onFailed(etv);
             };
         }
-        Object.defineProperty(Client.prototype, "isDebug", {
-            /**
-             * @override print debug info or not @default true
-             */
-            get: function () {
-                return true;
-            },
-            enumerable: true,
-            configurable: true
-        });
         Object.defineProperty(Client.prototype, "isLogin", {
             /**
              * @description Tell me your login status @default false
@@ -696,6 +722,87 @@ exports.Socket = Socket;
     Socket.Client = Client;
 })(Socket = exports.Socket || (exports.Socket = {}));
 exports.Socket = Socket;
+/**
+ * @description a group of util methods
+ */
+var sys;
+(function (sys) {
+    sys.debug = true;
+    /**
+     * @description print info message when debug allow
+     */
+    sys.log = function () {
+        if (sys.debug) {
+            console.info.apply(console, arguments);
+        }
+    };
+    /**
+     * @description print wining message when debug allow
+     */
+    sys.warn = function () {
+        if (sys.debug) {
+            console.warn.apply(console, arguments);
+        }
+    };
+    /**
+     * @description call func safely
+     * @usually  use for call callback function
+     * @param func target function
+     * @param args the @param func 's args
+     * @notice thirArg of @param func is undefined
+     */
+    sys.call = function (func) {
+        var args = [];
+        for (var _i = 1; _i < arguments.length; _i++) {
+            args[_i - 1] = arguments[_i];
+        }
+        if (typeof func === 'function') {
+            func.apply(undefined, args);
+        }
+    };
+    /**
+     * @description check an value is an available string
+     * @usually  use for form field verify
+     * @notice only @param value is number or not empty string can pass
+     * @param value witch to be verify
+     */
+    sys.okstr = function (value) {
+        var type = typeof value;
+        switch (type) {
+            case 'string': return value.length !== 0;
+            case 'number': return true;
+            default: return false;
+        }
+    };
+    /**
+     * @description check an value is an available integer
+     * @usually  use for form field verify
+     * @notice only @param value is integer like can pass
+     * @param value witch to be verify
+     */
+    sys.okint = function (value) {
+        var type = typeof value;
+        switch (type) {
+            case 'string': return /^\d+$/.test(value);
+            case 'number': return Number.isInteger(value);
+            default: return false;
+        }
+    };
+    /**
+     * @description check an value is an available number
+     * @usually  use for form field verify
+     * @notice only @param value is number like can pass
+     * @param value witch to be verify
+     */
+    sys.oknum = function (value) {
+        var type = typeof value;
+        switch (type) {
+            case 'string': return /^\d+\.?\d+$/.test(value);
+            case 'number': return true;
+            default: return false;
+        }
+    };
+})(sys = exports.sys || (exports.sys = {}));
 var pop;
 (function (pop) {
     /**

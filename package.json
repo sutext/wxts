@@ -1,6 +1,6 @@
 {
     "name": "wxts",
-    "version": "1.1.17",
+    "version": "1.2.0",
     "description": "wexin typescript dev suport!",
     "main": "index.js",
     "files": [
@@ -10,7 +10,8 @@
     ],
     "scripts": {
         "install": "node wxlib/install.js",
-        "start": "tsc"
+        "start": "tsc",
+        "test": "node test.js"
     },
     "repository": {
         "type": "git",

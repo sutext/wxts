@@ -75,7 +75,30 @@ export interface IObserver {
     readonly callback: Function;
 }
 export declare class Network {
+    /**
+     * @override point you shoud overwrite this property and provide you custom headers
+     * @example
+     * **示例代码*
+     * ``
+     * protected get headers(): any {
+     *     return {
+     *         token:'yourtoken',
+     *         account:'youraccount'
+     *     }
+     * }
+     * ``
+     */
     protected readonly headers: any;
+    /**
+     * @override point you shoud overwrite this property and provide you custom headers
+     * @example
+     * **示例代码*
+     * ``
+     * protected get method(): any {
+     *     return 'POST'
+     * }
+     * ``
+     */
     protected readonly method: Network.Method;
     /**
      * @description resove relative uri to full url
@@ -90,23 +113,25 @@ export declare class Network {
     readonly anyreq: <T>(req: Network.Request<T>) => Network.DataTask<T>;
     readonly objreq: <T>(req: Network.Request<T>) => Network.DataTask<T>;
     readonly aryreq: <T>(req: Network.Request<T>) => Network.DataTask<T[]>;
-    readonly upload: (file: Network.Upload, loading?: string | boolean) => Network.UploadTask;
+    readonly upload: (file: Network.Upload, options?: Network.Options) => Network.UploadTask;
     readonly anytask: <T = any>(path: string, data?: any, options?: Network.Options) => Network.DataTask<T>;
     readonly objtask: <T>(c: IMetaClass<T>, path: string, data?: any, options?: Network.Options) => Network.DataTask<T>;
     readonly arytask: <T>(c: IMetaClass<T>, path: string, data?: any, options?: Network.Options) => Network.DataTask<T[]>;
-    readonly download: (opts: Network.Download, loading?: string | boolean) => Network.DownloadTask;
+    readonly download: (opts: Network.Download, options?: Network.Options) => Network.DownloadTask;
 }
 export declare namespace Network {
     type Method = 'POST' | 'GET';
     /**
      * @description the addtion network params
      * @param loading show loading modal or not or custome loading message. @default false
-     * if true the default message is '加载中' . You can provide your custom message.
+     * @param loading if true the default message is '加载中' . You can provide your custom message.
      * @param method  the http method to overwrite global http method config
-     * the method will be ignore when upload file.
+     * @param method the method will be ignore when upload file.
+     * @param resolver if provide resolver the default resolve method will be replace
      * @param timestamp if true .the timestamp in http header will be return to result @default false
      */
     interface Options {
+        readonly parser?: (resp: wx.HttpResponse) => any;
         readonly method?: Method;
         readonly loading?: boolean | string;
         readonly timestamp?: boolean;
@@ -209,7 +234,6 @@ export declare namespace Socket {
         readonly open: IObserver[];
         readonly error: IObserver[];
         readonly close: IObserver[];
-        readonly failed: IObserver[];
         readonly message: IObserver[];
     }
     /**
@@ -275,10 +299,6 @@ export declare namespace Socket {
         protected readonly observers: Observers;
         constructor();
         /**
-         * @override print debug info or not @default true
-         */
-        protected readonly isDebug: boolean;
-        /**
          * @description Tell me your login status @default false
          * @description If false the start method will not work
          */
@@ -312,11 +332,54 @@ export declare namespace Socket {
         protected onMessage(msg: any): void;
         readonly status: Status;
         readonly isConnected: boolean;
-        readonly on: (evt: "open" | "error" | "close" | "failed" | "message", target: any, callback: Function) => void;
-        readonly off: (evt: "open" | "error" | "close" | "failed" | "message", target: any) => void;
+        readonly on: (evt: "open" | "error" | "close" | "message", target: any, callback: Function) => void;
+        readonly off: (evt: "open" | "error" | "close" | "message", target: any) => void;
         readonly stop: () => void;
         readonly start: () => void;
     }
+}
+/**
+ * @description a group of util methods
+ */
+export declare namespace sys {
+    let debug: boolean;
+    /**
+     * @description print info message when debug allow
+     */
+    const log: (msg: any, ...args: any[]) => void;
+    /**
+     * @description print wining message when debug allow
+     */
+    const warn: (msg: any, ...args: any[]) => void;
+    /**
+     * @description call func safely
+     * @usually  use for call callback function
+     * @param func target function
+     * @param args the @param func 's args
+     * @notice thirArg of @param func is undefined
+     */
+    const call: (func: Function, ...args: any[]) => void;
+    /**
+     * @description check an value is an available string
+     * @usually  use for form field verify
+     * @notice only @param value is number or not empty string can pass
+     * @param value witch to be verify
+     */
+    const okstr: (value: any) => boolean;
+    /**
+     * @description check an value is an available integer
+     * @usually  use for form field verify
+     * @notice only @param value is integer like can pass
+     * @param value witch to be verify
+     */
+    const okint: (value: any) => boolean;
+    /**
+     * @description check an value is an available number
+     * @usually  use for form field verify
+     * @notice only @param value is number like can pass
+     * @param value witch to be verify
+     */
+    const oknum: (value: any) => boolean;
 }
 export declare namespace pop {
     /**

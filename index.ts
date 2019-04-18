@@ -25,7 +25,7 @@ export function app(global?: wx.IAnyObject) {
         App(trim(new target()))
     }
 }
-export class IPage<D=any> implements wx.IPage {
+export class IPage<D = any> implements wx.IPage {
     [other: string]: any
     public readonly data: D & wx.IAnyObject
     public readonly route: string
@@ -63,7 +63,7 @@ export function page(inital?: wx.IAnyObject) {
         Page(trim(param))
     }
 }
-export class Widget<D=any> implements wx.IComponent {
+export class Widget<D = any> implements wx.IComponent {
     [other: string]: any
     public readonly data: D & wx.IAnyObject
     /**
@@ -121,9 +121,32 @@ export interface IObserver {
     readonly callback: Function
 }
 export class Network {
+    /**
+     * @override point you shoud overwrite this property and provide you custom headers
+     * @example 
+     * **示例代码*
+     * ``
+     * protected get headers(): any {
+     *     return {
+     *         token:'yourtoken',
+     *         account:'youraccount' 
+     *     }
+     * }
+     * ``
+     */
     protected get headers(): any {
         return {}
     }
+    /**
+     * @override point you shoud overwrite this property and provide you custom headers
+     * @example 
+     * **示例代码*
+     * ``
+     * protected get method(): any {
+     *     return 'POST'
+     * }
+     * ``
+     */
     protected get method(): Network.Method {
         return 'POST'
     }
@@ -145,16 +168,19 @@ export class Network {
         return this.anytask<T>(req.path, req.data, req.options)
     }
     public readonly objreq = <T>(req: Network.Request<T>) => {
-        if (typeof req.meta !== 'function') throw new Error('the req of objreq must be Function')
+        if (typeof req.meta !== 'function') throw new Error('the meta of objreq must be a class value')
         return this.objtask(req.meta as IMetaClass<T>, req.path, req.data, req.options)
     }
     public readonly aryreq = <T>(req: Network.Request<T>) => {
-        if (typeof req.meta !== 'function') throw new Error('the req of aryreq must be Function')
+        if (typeof req.meta !== 'function') throw new Error('the meta of aryreq must be class value')
         return this.arytask(req.meta as IMetaClass<T>, req.path, req.data, req.options)
     }
-    public readonly upload = (file: Network.Upload, loading?: string | boolean) => {
+    public readonly upload = (file: Network.Upload, options?: Network.Options) => {
         wx.showNavigationBarLoading()
-        if (loading) pop.wait(typeof loading === 'string' ? loading : undefined)
+        const loading = options && options.loading
+        if (options && options.loading) {
+            pop.wait(typeof loading === 'string' ? loading : undefined)
+        }
         let handler: wx.UploadTask
         const promiss = new Promise<any>((resolve, reject) => {
             handler = wx.uploadFile({
@@ -168,7 +194,8 @@ export class Network {
                     pop.idle()
                     try {
                         res.data = JSON.parse(res.data)
-                        const value = this.resolve(res)
+                        const parser = options && options.parser || this.resolve.bind(this)
+                        const value = parser(res)
                         resolve(value)
                     } catch (error) {
                         reject(error)
@@ -180,8 +207,10 @@ export class Network {
     }
     public readonly anytask = <T = any>(path: string, data?: any, options?: Network.Options) => {
         wx.showNavigationBarLoading()
-        if (options && options.loading)
-            pop.wait(typeof options.loading === 'string' ? options.loading : undefined)
+        const loading = options && options.loading
+        if (options && options.loading) {
+            pop.wait(typeof loading === 'string' ? loading : undefined)
+        }
         let handler: wx.RequestTask
         const promiss = new Promise<T>((resolve, reject) => {
             handler = wx.request({
@@ -193,7 +222,8 @@ export class Network {
                     wx.hideNavigationBarLoading()
                     if (options && options.loading) pop.idle()
                     try {
-                        const value = this.resolve(result)
+                        const parser = options && options.parser || this.resolve.bind(this)
+                        const value = parser(result)
                         if (options && options.timestamp && value && result.header && result.header.Date) {
                             value.timestamp = new Date(result.header.Date).getTime()
                         }
@@ -208,8 +238,10 @@ export class Network {
     }
     public readonly objtask = <T>(c: IMetaClass<T>, path: string, data?: any, options?: Network.Options) => {
         wx.showNavigationBarLoading()
-        if (options && options.loading)
-            pop.wait(typeof options.loading === 'string' ? options.loading : undefined)
+        const loading = options && options.loading
+        if (options && options.loading) {
+            pop.wait(typeof loading === 'string' ? loading : undefined)
+        }
         let handler: wx.RequestTask
         const promiss = new Promise<T>((resolve, reject) => {
             handler = wx.request({
@@ -221,7 +253,8 @@ export class Network {
                     wx.hideNavigationBarLoading()
                     if (options && options.loading) pop.idle()
                     try {
-                        const value = this.resolve(result)
+                        const parser = options && options.parser || this.resolve.bind(this)
+                        const value = parser(result)
                         if (options && options.timestamp && value && result.header && result.header.Date) {
                             value.timestamp = new Date(result.header.Date).getTime()
                         }
@@ -236,8 +269,10 @@ export class Network {
     }
     public readonly arytask = <T>(c: IMetaClass<T>, path: string, data?: any, options?: Network.Options) => {
         wx.showNavigationBarLoading()
-        if (options && options.loading)
-            pop.wait(typeof options.loading === 'string' ? options.loading : undefined)
+        const loading = options && options.loading
+        if (options && options.loading) {
+            pop.wait(typeof loading === 'string' ? loading : undefined)
+        }
         let handler: wx.RequestTask
         const promiss = new Promise<T[]>((resolve, reject) => {
             handler = wx.request({
@@ -249,7 +284,8 @@ export class Network {
                     wx.hideNavigationBarLoading()
                     if (options && options.loading) pop.idle()
                     try {
-                        const value = this.resolve(result)
+                        const parser = options && options.parser || this.resolve.bind(this)
+                        const value = parser(result)
                         if (value && value.length > 0) {
                             resolve(value.map((e: any) => new c(e)))
                         } else {
@@ -263,9 +299,12 @@ export class Network {
         });
         return new Network.DataTask(promiss, handler)
     }
-    public readonly download = (opts: Network.Download, loading?: string | boolean) => {
+    public readonly download = (opts: Network.Download, options?: Network.Options) => {
         wx.showNavigationBarLoading()
-        if (loading) pop.wait(typeof loading === 'string' ? loading : undefined)
+        const loading = options && options.loading
+        if (options && options.loading) {
+            pop.wait(typeof loading === 'string' ? loading : undefined)
+        }
         let handler: wx.DownloadTask
         const promiss = new Promise<string>((resolve, reject) => {
             handler = wx.downloadFile({
@@ -289,12 +328,14 @@ export namespace Network {
     /**
      * @description the addtion network params
      * @param loading show loading modal or not or custome loading message. @default false 
-     * if true the default message is '加载中' . You can provide your custom message.
+     * @param loading if true the default message is '加载中' . You can provide your custom message.
      * @param method  the http method to overwrite global http method config
-     * the method will be ignore when upload file.
+     * @param method the method will be ignore when upload file.
+     * @param resolver if provide resolver the default resolve method will be replace
      * @param timestamp if true .the timestamp in http header will be return to result @default false
      */
     export interface Options {
+        readonly parser?: (resp: wx.HttpResponse) => any
         readonly method?: Method
         readonly loading?: boolean | string
         readonly timestamp?: boolean
@@ -404,7 +445,7 @@ export class Socket {
     public onopen: (header: any, isRetry: boolean) => void
     public onclose: (evt: wx.SocketClose) => void
     public onerror: (evt: wx.SocketError) => void
-    public onfailed: (evt: wx.SocketClose) => void
+    public onfailed: (evt: wx.SocketClose) => void//called when retry failed
     public onmessage: (evt: wx.SocketMessage) => void
     constructor(builder: () => string) {
         this.buildurl = builder
@@ -478,7 +519,6 @@ export namespace Socket {
         readonly open: IObserver[] = []
         readonly error: IObserver[] = []
         readonly close: IObserver[] = []
-        readonly failed: IObserver[] = []
         readonly message: IObserver[] = []
     }
     /**
@@ -540,15 +580,15 @@ export namespace Socket {
             if (this.socket.status !== 'opened') return
             const data = "{\"type\":\"PING\"}"
             this.socket.send(data)
-            console.log('发送 PING:', data);
+            sys.log('发送 PING:', data);
             this.timeout = setTimeout(() => {
-                console.log('PING 超时');
+                sys.log('PING 超时');
                 this.timeout = null;
                 this.socket.close(1006)
             }, 3 * 1000);
         }
         public readonly receive = (msg: any) => {
-            console.log("收到 PONG", msg);
+            sys.log("收到 PONG", msg);
             if (!this.allow || !this.timeout) return
             clearTimeout(this.timeout)
             this.timeout = null
@@ -585,15 +625,15 @@ export namespace Socket {
             this.socket = new Socket(() => this.buildurl())
             this.ping = new Ping(this.socket, this.allowPing)
             this.socket.onopen = (evt, isRetry) => {
-                console.log('Socket Client 连接已打开！', evt);
+                sys.log('Socket Client 连接已打开！', evt);
                 this.onOpened(evt, isRetry)
             }
             this.socket.onerror = evt => {
-                console.log('Socket Client 连接打开失败，请检查！', evt);
+                sys.warn('Socket Client 连接打开失败，请检查！', evt);
                 this.onError(evt)
             }
             this.socket.onmessage = evt => {
-                console.log('Socket Client 收到消息：', evt);
+                sys.log('Socket Client 收到消息：', evt);
                 if (typeof evt.data !== "string") return
                 const msg = JSON.parse(evt.data)
                 if (msg.type == "PONG") {
@@ -603,21 +643,15 @@ export namespace Socket {
                 }
             }
             this.socket.onclose = evt => {
-                console.log('Socket Client  已关闭！', evt);
+                sys.log('Socket Client  已关闭！', evt);
                 this.ping.stop()
                 this.onClosed(evt)
             }
             this.socket.onfailed = (etv) => {
-                console.log('Socket Client 重连超时！')
+                sys.log('Socket Client 重连超时！')
                 this.ping.stop()
                 this.onFailed(etv)
             }
-        }
-        /**
-         * @override print debug info or not @default true
-         */
-        protected get isDebug(): boolean {
-            return true
         }
         /**
          * @description Tell me your login status @default false
@@ -693,6 +727,82 @@ export namespace Socket {
             this.socket.retryable = true
             this.socket.open()
             this.ping.start()
+        }
+    }
+}
+/**
+ * @description a group of util methods
+ */
+export namespace sys {
+    export let debug: boolean = true
+    /**
+     * @description print info message when debug allow
+     */
+    export const log: (msg: any, ...args: any[]) => void = function () {
+        if (sys.debug) {
+            console.info.apply(console, arguments)
+        }
+    }
+    /**
+     * @description print wining message when debug allow
+     */
+    export const warn: (msg: any, ...args: any[]) => void = function () {
+        if (sys.debug) {
+            console.warn.apply(console, arguments)
+        }
+    }
+    /**
+     * @description call func safely 
+     * @usually  use for call callback function
+     * @param func target function
+     * @param args the @param func 's args
+     * @notice thirArg of @param func is undefined
+     */
+    export const call = function (func: Function, ...args: any[]) {
+        if (typeof func === 'function') {
+            func.apply(undefined, args)
+        }
+    }
+    /**
+     * @description check an value is an available string
+     * @usually  use for form field verify
+     * @notice only @param value is number or not empty string can pass
+     * @param value witch to be verify
+     */
+    export const okstr = (value: any) => {
+        const type = typeof value
+        switch (type) {
+            case 'string': return value.length !== 0
+            case 'number': return true
+            default: return false
+        }
+    }
+    /**
+     * @description check an value is an available integer
+     * @usually  use for form field verify
+     * @notice only @param value is integer like can pass
+     * @param value witch to be verify
+     */
+    export const okint = (value: any) => {
+        const type = typeof value
+        switch (type) {
+            case 'string': return /^\d+$/.test(value)
+            case 'number': return Number.isInteger(value)
+            default: return false
+        }
+    }
+    /**
+     * @description check an value is an available number
+     * @usually  use for form field verify
+     * @notice only @param value is number like can pass
+     * @param value witch to be verify
+     */
+    export const oknum = (value: any) => {
+        const type = typeof value
+        switch (type) {
+            case 'string': return /^\d+\.?\d+$/.test(value)
+            case 'number': return true
+            default: return false
         }
     }
 }
