@@ -123,11 +123,11 @@ export declare namespace Network {
     type Method = 'POST' | 'GET';
     /**
      * @description the addtion network params
+     * @param parser use for replace the default resolve method of Network
      * @param loading show loading modal or not or custome loading message. @default false
      * @param loading if true the default message is '加载中' . You can provide your custom message.
      * @param method  the http method to overwrite global http method config
      * @param method the method will be ignore when upload file.
-     * @param resolver if provide resolver the default resolve method will be replace
      * @param timestamp if true .the timestamp in http header will be return to result @default false
      */
     interface Options {

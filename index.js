@@ -171,7 +171,7 @@ var Network = /** @class */ (function () {
                     url: _this.url(path),
                     header: _this.headers,
                     data: data,
-                    method: options && options.method ? options.method : _this.method,
+                    method: options && options.method || _this.method,
                     complete: function (result) {
                         wx.hideNavigationBarLoading();
                         if (options && options.loading)
@@ -204,7 +204,7 @@ var Network = /** @class */ (function () {
                     url: _this.url(path),
                     header: _this.headers,
                     data: data,
-                    method: options && options.method ? options.method : _this.method,
+                    method: options && options.method || _this.method,
                     complete: function (result) {
                         wx.hideNavigationBarLoading();
                         if (options && options.loading)
@@ -237,7 +237,7 @@ var Network = /** @class */ (function () {
                     url: _this.url(path),
                     header: _this.headers,
                     data: data,
-                    method: options && options.method ? options.method : _this.method,
+                    method: options && options.method || _this.method,
                     complete: function (result) {
                         wx.hideNavigationBarLoading();
                         if (options && options.loading)
