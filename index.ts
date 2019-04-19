@@ -443,9 +443,8 @@ export class Socket {
     public retryable: boolean = false
     public readonly retry: Socket.Retry
     public onopen: (header: any, isRetry: boolean) => void
-    public onclose: (evt: wx.SocketClose) => void
+    public onclose: (evt: wx.SocketClose, reason: Socket.Reason) => void
     public onerror: (evt: wx.SocketError) => void
-    public onfailed: (evt: wx.SocketClose) => void//called when retry failed
     public onmessage: (evt: wx.SocketMessage) => void
     constructor(builder: () => string) {
         this.buildurl = builder
@@ -457,8 +456,8 @@ export class Socket {
     }
     private onRetryFailed(e: wx.SocketClose) {
         this._retrying = false
-        if (typeof this.onfailed === 'function') {
-            this.onfailed(e)
+        if (typeof this.onclose === 'function') {
+            this.onclose(e, 'retry')
         }
     }
     private onOpenCallback(header: any) {
@@ -468,13 +467,17 @@ export class Socket {
         }
         this._retrying = false
     }
-    private onCloseCallback(res: wx.SocketClose) {
+    private onCloseCallback(e: wx.SocketClose) {
         this._status = 'closed'
-        if (this.retryable && res.code < 3000) {
-            this.retry.attempt(res);
+        if (this.retryable && e.code < 3000) {
+            this.retry.attempt(e);
         } else if (typeof this.onclose === 'function') {
             this._retrying = false
-            this.onclose(res)
+            let reason: Socket.Reason = 'server'
+            if (e.reason === 'ping' || e.reason === 'user') {
+                reason = e.reason
+            }
+            this.onclose(e, reason)
         }
     }
     private onErrorCallback(res: wx.SocketError) {
@@ -513,6 +516,7 @@ export class Socket {
     public get isRetrying() { return this._retrying }
 }
 export namespace Socket {
+    export type Reason = 'user' | 'ping' | 'retry' | 'server'
     export type Status = 'closed' | 'closing' | 'opened' | 'opening'
     export type Events = keyof Observers
     export class Observers {
@@ -584,7 +588,7 @@ export namespace Socket {
             this.timeout = setTimeout(() => {
                 sys.log('PING 超时');
                 this.timeout = null;
-                this.socket.close(1006)
+                this.socket.close(1006, 'ping')
             }, 3 * 1000);
         }
         public readonly receive = (msg: any) => {
@@ -625,15 +629,15 @@ export namespace Socket {
             this.socket = new Socket(() => this.buildurl())
             this.ping = new Ping(this.socket, this.allowPing)
             this.socket.onopen = (evt, isRetry) => {
-                sys.log('Socket Client 连接已打开！', evt);
+                sys.log('Socket Client Opend:evt=', evt);
                 this.onOpened(evt, isRetry)
             }
             this.socket.onerror = evt => {
-                sys.warn('Socket Client 连接打开失败，请检查！', evt);
+                sys.warn('Socket Client Error:evt=', evt);
                 this.onError(evt)
             }
             this.socket.onmessage = evt => {
-                sys.log('Socket Client 收到消息：', evt);
+                sys.log('Socket Client received message:evt=', evt);
                 if (typeof evt.data !== "string") return
                 const msg = JSON.parse(evt.data)
                 if (msg.type == "PONG") {
@@ -642,15 +646,10 @@ export namespace Socket {
                     this.onMessage(msg)
                 }
             }
-            this.socket.onclose = evt => {
-                sys.log('Socket Client  已关闭！', evt);
+            this.socket.onclose = (evt, reason) => {
+                sys.log('Socket Client closed:evt=', evt);
                 this.ping.stop()
-                this.onClosed(evt)
-            }
-            this.socket.onfailed = (etv) => {
-                sys.log('Socket Client 重连超时！')
-                this.ping.stop()
-                this.onFailed(etv)
+                this.onClosed(evt, reason)
             }
         }
         /**
@@ -660,33 +659,18 @@ export namespace Socket {
         protected get isLogin(): boolean {
             return false
         }
-        /**
-         * @description overwrite point set allow ping or not 
-         */
+        /** @description overwrite point set allow ping or not */
         protected get allowPing(): boolean {
             return true
         }
-        /**
-         * @override point
-         * @description overwrite this method to provide url for web socket
-         */
+        /** @description overwrite this method to provide url for web socket */
         protected buildurl(): string { return '' }
         /** call when some error occur @override point */
         protected onError(res: wx.SocketError) { }
+        /** call when socket opend . @override point */
+        protected onOpened(header: any, isRetry: boolean) { }
         /** call when socket closed . @override point */
-        protected onOpened(res: any, isRetry: boolean) { }
-        /** 
-         * @override point
-         * @description call when socket closed  
-         * @notice onFailed and onClosed only trigger one
-         */
-        protected onClosed(res: wx.SocketClose) { }
-        /** 
-         * @override point
-         * @description call when socket retry failed  
-         * @notice onFailed and onClosed only trigger one
-         */
-        protected onFailed(res: wx.SocketClose) { }
+        protected onClosed(evt: wx.SocketClose, reason: Reason) { }
         /** call when get some message @override point */
         protected onMessage(msg: any) { }
         public get status() {
@@ -713,7 +697,7 @@ export namespace Socket {
                 return
             }
             this.socket.retryable = false
-            this.socket.close(1000)
+            this.socket.close(1000, 'user')
             this.ping.stop()
         }
         public readonly start = () => {

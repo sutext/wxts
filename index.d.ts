@@ -210,9 +210,8 @@ export declare class Socket {
     retryable: boolean;
     readonly retry: Socket.Retry;
     onopen: (header: any, isRetry: boolean) => void;
-    onclose: (evt: wx.SocketClose) => void;
+    onclose: (evt: wx.SocketClose, reason: Socket.Reason) => void;
     onerror: (evt: wx.SocketError) => void;
-    onfailed: (evt: wx.SocketClose) => void;
     onmessage: (evt: wx.SocketMessage) => void;
     constructor(builder: () => string);
     private onRetryCallback;
@@ -228,6 +227,7 @@ export declare class Socket {
     readonly isRetrying: boolean;
 }
 export declare namespace Socket {
+    type Reason = 'user' | 'ping' | 'retry' | 'server';
     type Status = 'closed' | 'closing' | 'opened' | 'opening';
     type Events = keyof Observers;
     class Observers {
@@ -303,31 +303,16 @@ export declare namespace Socket {
          * @description If false the start method will not work
          */
         protected readonly isLogin: boolean;
-        /**
-         * @description overwrite point set allow ping or not
-         */
+        /** @description overwrite point set allow ping or not */
         protected readonly allowPing: boolean;
-        /**
-         * @override point
-         * @description overwrite this method to provide url for web socket
-         */
+        /** @description overwrite this method to provide url for web socket */
         protected buildurl(): string;
         /** call when some error occur @override point */
         protected onError(res: wx.SocketError): void;
+        /** call when socket opend . @override point */
+        protected onOpened(header: any, isRetry: boolean): void;
         /** call when socket closed . @override point */
-        protected onOpened(res: any, isRetry: boolean): void;
-        /**
-         * @override point
-         * @description call when socket closed
-         * @notice onFailed and onClosed only trigger one
-         */
-        protected onClosed(res: wx.SocketClose): void;
-        /**
-         * @override point
-         * @description call when socket retry failed
-         * @notice onFailed and onClosed only trigger one
-         */
-        protected onFailed(res: wx.SocketClose): void;
+        protected onClosed(evt: wx.SocketClose, reason: Reason): void;
         /** call when get some message @override point */
         protected onMessage(msg: any): void;
         readonly status: Status;

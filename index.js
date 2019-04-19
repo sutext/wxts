@@ -434,8 +434,8 @@ var Socket = /** @class */ (function () {
     };
     Socket.prototype.onRetryFailed = function (e) {
         this._retrying = false;
-        if (typeof this.onfailed === 'function') {
-            this.onfailed(e);
+        if (typeof this.onclose === 'function') {
+            this.onclose(e, 'retry');
         }
     };
     Socket.prototype.onOpenCallback = function (header) {
@@ -445,14 +445,18 @@ var Socket = /** @class */ (function () {
         }
         this._retrying = false;
     };
-    Socket.prototype.onCloseCallback = function (res) {
+    Socket.prototype.onCloseCallback = function (e) {
         this._status = 'closed';
-        if (this.retryable && res.code < 3000) {
-            this.retry.attempt(res);
+        if (this.retryable && e.code < 3000) {
+            this.retry.attempt(e);
         }
         else if (typeof this.onclose === 'function') {
             this._retrying = false;
-            this.onclose(res);
+            var reason = 'server';
+            if (e.reason === 'ping' || e.reason === 'user') {
+                reason = e.reason;
+            }
+            this.onclose(e, reason);
         }
     };
     Socket.prototype.onErrorCallback = function (res) {
@@ -553,7 +557,7 @@ exports.Socket = Socket;
                 _this.timeout = setTimeout(function () {
                     sys.log('PING 超时');
                     _this.timeout = null;
-                    _this.socket.close(1006);
+                    _this.socket.close(1006, 'ping');
                 }, 3 * 1000);
             };
             this.receive = function (msg) {
@@ -611,7 +615,7 @@ exports.Socket = Socket;
                     return;
                 }
                 _this.socket.retryable = false;
-                _this.socket.close(1000);
+                _this.socket.close(1000, 'user');
                 _this.ping.stop();
             };
             this.start = function () {
@@ -629,15 +633,15 @@ exports.Socket = Socket;
             this.socket = new Socket(function () { return _this.buildurl(); });
             this.ping = new Ping(this.socket, this.allowPing);
             this.socket.onopen = function (evt, isRetry) {
-                sys.log('Socket Client 连接已打开！', evt);
+                sys.log('Socket Client Opend:evt=', evt);
                 _this.onOpened(evt, isRetry);
             };
             this.socket.onerror = function (evt) {
-                sys.warn('Socket Client 连接打开失败，请检查！', evt);
+                sys.warn('Socket Client Error:evt=', evt);
                 _this.onError(evt);
             };
             this.socket.onmessage = function (evt) {
-                sys.log('Socket Client 收到消息：', evt);
+                sys.log('Socket Client received message:evt=', evt);
                 if (typeof evt.data !== "string")
                     return;
                 var msg = JSON.parse(evt.data);
@@ -648,15 +652,10 @@ exports.Socket = Socket;
                     _this.onMessage(msg);
                 }
             };
-            this.socket.onclose = function (evt) {
-                sys.log('Socket Client  已关闭！', evt);
+            this.socket.onclose = function (evt, reason) {
+                sys.log('Socket Client closed:evt=', evt);
                 _this.ping.stop();
-                _this.onClosed(evt);
-            };
-            this.socket.onfailed = function (etv) {
-                sys.log('Socket Client 重连超时！');
-                _this.ping.stop();
-                _this.onFailed(etv);
+                _this.onClosed(evt, reason);
             };
         }
         Object.defineProperty(Client.prototype, "isLogin", {
@@ -671,36 +670,21 @@ exports.Socket = Socket;
             configurable: true
         });
         Object.defineProperty(Client.prototype, "allowPing", {
-            /**
-             * @description overwrite point set allow ping or not
-             */
+            /** @description overwrite point set allow ping or not */
             get: function () {
                 return true;
             },
             enumerable: true,
             configurable: true
         });
-        /**
-         * @override point
-         * @description overwrite this method to provide url for web socket
-         */
+        /** @description overwrite this method to provide url for web socket */
         Client.prototype.buildurl = function () { return ''; };
         /** call when some error occur @override point */
         Client.prototype.onError = function (res) { };
+        /** call when socket opend . @override point */
+        Client.prototype.onOpened = function (header, isRetry) { };
         /** call when socket closed . @override point */
-        Client.prototype.onOpened = function (res, isRetry) { };
-        /**
-         * @override point
-         * @description call when socket closed
-         * @notice onFailed and onClosed only trigger one
-         */
-        Client.prototype.onClosed = function (res) { };
-        /**
-         * @override point
-         * @description call when socket retry failed
-         * @notice onFailed and onClosed only trigger one
-         */
-        Client.prototype.onFailed = function (res) { };
+        Client.prototype.onClosed = function (evt, reason) { };
         /** call when get some message @override point */
         Client.prototype.onMessage = function (msg) { };
         Object.defineProperty(Client.prototype, "status", {
