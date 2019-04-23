@@ -784,7 +784,7 @@ export namespace sys {
     export const oknum = (value: any) => {
         const type = typeof value
         switch (type) {
-            case 'string': return /^\d+\.?\d+$/.test(value)
+            case 'string': return /^\d+\.?\d*$/.test(value)
             case 'number': return true
             default: return false
         }
