@@ -27,9 +27,9 @@ import { app, IApp} from 'wxts'
 import {socket} from './socket'
 const env = wx.getSystemInfoSync()
 @app({ env })
-export default class App extends IApp implements wts.IApp {
+export default class App extends IApp implements wx.IApp {
     onLaunch() {
-        socket.addListener(this)
+        socket.on('message',this,this.onMessage)
         socket.start()
      }
     onShow() {
@@ -45,7 +45,7 @@ For src/widgets/hello/index.ts :
 ```ts
 import { widget, Widget} from 'wxts'
 @widget({title:'hello widget'})
-export default class Index extends Widget implements wts.IComponent{
+export default class Index extends Widget implements wx.IComponent{
     sayWorld(){
         this.setData({title:"hello world!!!"})
     }
@@ -61,7 +61,7 @@ import { page, IPage } from 'wxts'
 import Hello from '../../widgets/hello/index'
 const items = [{ title: "系统版本", key: "model" }, { title: "屏幕宽度", key: "screenWidth" }, { title: "屏幕高度", key: "screenHeight" }]
 @page({ items })
-export default class Index extends IPage implements wts.IPage {
+export default class Index extends IPage implements wx.IPage {
     private hello: Hello
     onLoad() {
         this.hello = this.selectComponent('#hello')
@@ -146,20 +146,17 @@ net.objtask(User, 'user/info', {id:'userid'})
 #Socket
 for socket.ts
 ```ts
-import * as wxts from "wxts";
-class Socket extends wxts.Socket {
+import {Socket}  from "wxts";
+class Client extends Socket {
     protected maxAttemptTimes: number = 10 //config attemp times
     protected heartbeatInterval: number = 30//config heartbeat interval
-    get url(): string {
+    get buildurl(): string {
         return "wss://" + env.host + "/socket/ws/customer?token=" + 'yourtoken'
-    }
-    get isDebug() {
-        return env.isDebug
     }
     get isLogin() {
         return constant.isLogin
     }
-    didLogout() {
+    onClose(evt: wx.SocketClose, reason: Socket.Reason) {
         wxts.pop.alert('您已在别处登录，请重新登录', () => constant.logout())
     }
 }

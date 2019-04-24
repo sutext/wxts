@@ -826,11 +826,11 @@ var pop;
     pop.dialog = function (content, confirm, cancel) {
         wx.showModal({
             title: "提示", content: content, showCancel: true, success: function (res) {
-                if (res.confirm && typeof confirm === 'function') {
-                    confirm();
+                if (res.confirm) {
+                    sys.call(confirm);
                 }
-                else if (res.cancel && typeof cancel === 'function') {
-                    cancel();
+                else if (res.cancel) {
+                    sys.call(cancel);
                 }
             }
         });
@@ -842,22 +842,21 @@ var pop;
      */
     pop.remind = function (ok, dismiss) {
         wx.showToast({ title: ok, icon: "success", duration: 1000, mask: true });
-        setTimeout(function () {
-            if (typeof dismiss === 'function') {
-                dismiss();
-            }
-        }, 1000);
+        setTimeout(function () { return sys.call(dismiss); }, 1000);
     };
 })(pop = exports.pop || (exports.pop = {}));
 var orm;
 (function (orm) {
+    var FIELD_KEY = '__orm_field';
+    var CLASS_KEY = '__orm_class';
+    var INDEX_KEY = '__orm_index';
     var stored = {};
     function awake(cls, json) {
         if (!json)
             return undefined;
         var obj = new cls();
         Object.assign(obj, json);
-        var fields = cls['sg_fields'];
+        var fields = cls[FIELD_KEY];
         if (fields) {
             var _loop_2 = function (field_1) {
                 var subjson = obj[field_1];
@@ -878,20 +877,45 @@ var orm;
         }
         return obj;
     }
+    function getClskey(cls) {
+        var clskey = cls && cls[CLASS_KEY];
+        if (!clskey) {
+            throw new Error("The Class:" + cls.name + " did't  mark with decorate @store(clsname,primary)");
+        }
+        return clskey;
+    }
+    function getIdxkey(cls) {
+        var idxkey = cls && cls[INDEX_KEY];
+        if (!idxkey) {
+            throw new Error("The privkey:" + idxkey + " of " + cls.name + " is invalid!");
+        }
+        return idxkey;
+    }
+    function getObjkey(clskey, id) {
+        if (!clskey || !id)
+            return null;
+        return clskey + "." + id;
+    }
     /**
      * @description  A class decorate use to store class.
      * @param clsname the class name of your storage class
      * @param primary the primary key name of your storage class
      * @throws class already exist error.
      */
-    orm.store = function (clsname, primary) {
-        if (stored[clsname]) {
-            throw new Error("The clsname:" + clsname + " already exist!!You can't mark different class with same name!!");
+    orm.store = function (clskey, idxkey) {
+        if (!sys.okstr(clskey)) {
+            throw new Error("The clskey:" + clskey + " invalid!");
         }
-        stored[clsname] = true;
+        if (!sys.okstr(idxkey)) {
+            throw new Error("The privkey:" + idxkey + " invalid!");
+        }
+        if (stored[clskey]) {
+            throw new Error("The clskey:" + clskey + " already exist!!You can't mark different class with same name!!");
+        }
+        stored[clskey] = true;
         return function (target) {
-            target['sg_clsname'] = clsname;
-            target['sg_primary'] = primary;
+            target[CLASS_KEY] = clskey;
+            target[INDEX_KEY] = idxkey;
         };
     };
     /**
@@ -900,7 +924,7 @@ var orm;
      */
     orm.field = function (cls) {
         return function (target, field) {
-            var fields = target.constructor['sg_fields'] || (target.constructor['sg_fields'] = {});
+            var fields = target.constructor[FIELD_KEY] || (target.constructor[FIELD_KEY] = {});
             fields[field] = cls;
         };
     };
@@ -912,19 +936,13 @@ var orm;
     orm.save = function (model) {
         if (!model)
             return;
-        var classkey = model.constructor['sg_clsname'];
-        var primary = model.constructor['sg_primary'];
-        if (!classkey || !primary) {
-            throw new Error("The Class:" + model.constructor.name + " did't  mark with decorate @store(clsname,primary)");
-        }
-        var id = model[primary];
-        if (id === undefined || id === null)
-            return;
-        var key = classkey + "." + id;
-        var keys = wx.getStorageSync(classkey) || {};
-        keys[key] = '';
-        wx.setStorageSync(classkey, keys);
-        wx.setStorageSync(key, model);
+        var clskey = getClskey(model.constructor);
+        var idxkey = getIdxkey(model.constructor);
+        var objkey = getObjkey(clskey, model[idxkey]);
+        var keys = wx.getStorageSync(clskey) || {};
+        keys[objkey] = '';
+        wx.setStorageSync(clskey, keys);
+        wx.setStorageSync(objkey, model);
     };
     /**
      * @description find an storaged object whith id.
@@ -933,14 +951,9 @@ var orm;
      * @throws did't mark error
      */
     orm.find = function (cls, id) {
-        var classkey = cls['sg_clsname'];
-        if (!classkey) {
-            throw new Error("The Class:" + cls.name + " did't  mark with decorate @store(clsname,primary)");
-        }
-        if (!id)
-            return;
-        var json = wx.getStorageSync(classkey + "." + id);
-        return awake(cls, json);
+        var clskey = getClskey(cls);
+        var objkey = getObjkey(clskey, id);
+        return awake(cls, wx.getStorageSync(objkey));
     };
     /**
      * @description find all storaged object of cls.
@@ -948,11 +961,8 @@ var orm;
      * @throws did't mark error
      */
     orm.all = function (cls) {
-        var classkey = cls['sg_clsname'];
-        if (!classkey) {
-            throw new Error("The Class:" + cls.name + " did't  mark with decorate @store(clsname,primary)");
-        }
-        var keys = wx.getStorageSync(classkey);
+        var clskey = getClskey(cls);
+        var keys = wx.getStorageSync(clskey);
         if (!keys)
             return [];
         var result = [];
@@ -970,11 +980,8 @@ var orm;
      * @throws did't mark error
      */
     orm.count = function (cls) {
-        var classkey = cls['sg_clsname'];
-        if (!classkey) {
-            throw new Error("The Class:" + cls.name + " did't  mark with decorate @store(clsname,primary)");
-        }
-        var keys = wx.getStorageSync(classkey);
+        var clskey = getClskey(cls);
+        var keys = wx.getStorageSync(clskey);
         return keys ? Object.keys(keys).length : 0;
     };
     /**
@@ -983,16 +990,13 @@ var orm;
      * @throws did't mark error
      */
     orm.clear = function (cls) {
-        var classkey = cls['sg_clsname'];
-        if (!classkey) {
-            throw new Error("The Class:" + cls.name + " did't  mark with decorate @store(clsname,primary)");
-        }
-        var keys = wx.getStorageSync(classkey);
+        var clskey = getClskey(cls);
+        var keys = wx.getStorageSync(clskey);
         if (keys) {
             for (var key in keys) {
                 wx.removeStorageSync(key);
             }
-            wx.removeStorageSync(classkey);
+            wx.removeStorageSync(clskey);
         }
     };
     /**
@@ -1002,12 +1006,8 @@ var orm;
      * @throws did't mark error
      */
     orm.remove = function (cls, id) {
-        var classkey = cls['sg_clsname'];
-        if (!classkey) {
-            throw new Error("The Class:" + cls.name + " did't  mark with decorate @store(clsname,primary)");
-        }
-        if (!id)
-            return;
-        wx.removeStorageSync(classkey + "." + id);
+        var clskey = getClskey(cls);
+        var objkey = getObjkey(clskey, id);
+        wx.removeStorageSync(objkey);
     };
 })(orm = exports.orm || (exports.orm = {}));

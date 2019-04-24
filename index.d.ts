@@ -11,7 +11,7 @@ export declare class IPage<D = any> implements wx.IPage {
     [other: string]: any;
     readonly data: D & wx.IAnyObject;
     readonly route: string;
-    readonly options: any;
+    readonly options: wx.IAnyObject;
     /**
      * @description `setData` 函数用于将数据从逻辑层发送到视图层（异步），同时改变对应的 `this.data` 的值（同步）。
      * @notice 直接修改 this.data 而不调用 this.setData 是无法改变页面的状态的，还会造成数据不一致
@@ -24,7 +24,6 @@ export declare class IPage<D = any> implements wx.IPage {
      * @param callback setData引起的界面更新渲染完毕后的回调函数，最低基础库： `1.5.0`
      */
     readonly setData: <K extends keyof D>(data: D | Pick<D, K>, callback?: () => void) => void;
-    readonly triggerEvent: (name: string, detail?: any) => void;
     readonly selectComponent: (selector: string) => any;
     readonly selectAllComponents: () => any[];
     readonly createSelectorQuery: () => wx.SelectorQuery;
@@ -408,7 +407,7 @@ export declare namespace orm {
      * @param primary the primary key name of your storage class
      * @throws class already exist error.
      */
-    const store: (clsname: string, primary: string) => <T>(target: IMetaClass<T>) => void;
+    const store: (clskey: string, idxkey: string) => <T>(target: IMetaClass<T>) => void;
     /**
      * @description  A property decorate to mark a field  also a store class.
      * @param cls the class of field.

@@ -29,7 +29,7 @@ export class IPage<D = any> implements wx.IPage {
     [other: string]: any
     public readonly data: D & wx.IAnyObject
     public readonly route: string
-    public readonly options: any
+    public readonly options: wx.IAnyObject
     /**
      * @description `setData` 函数用于将数据从逻辑层发送到视图层（异步），同时改变对应的 `this.data` 的值（同步）。
      * @notice 直接修改 this.data 而不调用 this.setData 是无法改变页面的状态的，还会造成数据不一致
@@ -42,7 +42,6 @@ export class IPage<D = any> implements wx.IPage {
      * @param callback setData引起的界面更新渲染完毕后的回调函数，最低基础库： `1.5.0` 
      */
     public readonly setData: <K extends keyof D>(data: D | Pick<D, K>, callback?: () => void) => void;
-    public readonly triggerEvent: (name: string, detail?: any) => void
     public readonly selectComponent: (selector: string) => any
     public readonly selectAllComponents: () => any[]
     public readonly createSelectorQuery: () => wx.SelectorQuery
@@ -828,10 +827,10 @@ export namespace pop {
     export const dialog = (content: string, confirm?: () => void, cancel?: () => void) => {
         wx.showModal({
             title: "提示", content: content, showCancel: true, success: res => {
-                if (res.confirm && typeof confirm === 'function') {
-                    confirm()
-                } else if (res.cancel && typeof cancel === 'function') {
-                    cancel()
+                if (res.confirm) {
+                    sys.call(confirm)
+                } else if (res.cancel) {
+                    sys.call(cancel)
                 }
             }
         })
@@ -843,20 +842,19 @@ export namespace pop {
      */
     export const remind = (ok: string, dismiss?: () => void) => {
         wx.showToast({ title: ok, icon: "success", duration: 1000, mask: true })
-        setTimeout(() => {
-            if (typeof dismiss === 'function') {
-                dismiss()
-            }
-        }, 1000);
+        setTimeout(() => sys.call(dismiss), 1000);
     }
 }
 export namespace orm {
+    const FIELD_KEY = '__orm_field'
+    const CLASS_KEY = '__orm_class'
+    const INDEX_KEY = '__orm_index'
     const stored: any = {}
     function awake<T>(cls: IMetaClass<T>, json: any) {
         if (!json) return undefined
         const obj = new cls()
         Object.assign(obj, json)
-        const fields = cls['sg_fields']
+        const fields = cls[FIELD_KEY]
         if (fields) {
             for (const field in fields) {
                 const subjson = obj[field]
@@ -872,20 +870,44 @@ export namespace orm {
         }
         return obj
     }
+    function getClskey(cls: Function): string {
+        const clskey = cls && cls[CLASS_KEY]
+        if (!clskey) {
+            throw new Error(`The Class:${cls.name} did\'t  mark with decorate @store(clsname,primary)`)
+        }
+        return clskey
+    }
+    function getIdxkey(cls: Function): string {
+        const idxkey = cls && cls[INDEX_KEY]
+        if (!idxkey) {
+            throw new Error(`The privkey:${idxkey} of ${cls.name} is invalid!`)
+        }
+        return idxkey
+    }
+    function getObjkey(clskey: string, id: string | number) {
+        if (!clskey || !id) return null
+        return `${clskey}.${id}`
+    }
     /**
      * @description  A class decorate use to store class.
      * @param clsname the class name of your storage class
      * @param primary the primary key name of your storage class
      * @throws class already exist error.
      */
-    export const store = (clsname: string, primary: string) => {
-        if (stored[clsname]) {
-            throw new Error(`The clsname:${clsname} already exist!!You can't mark different class with same name!!`)
+    export const store = (clskey: string, idxkey: string) => {
+        if (!sys.okstr(clskey)) {
+            throw new Error(`The clskey:${clskey} invalid!`)
         }
-        stored[clsname] = true
+        if (!sys.okstr(idxkey)) {
+            throw new Error(`The privkey:${idxkey} invalid!`)
+        }
+        if (stored[clskey]) {
+            throw new Error(`The clskey:${clskey} already exist!!You can't mark different class with same name!!`)
+        }
+        stored[clskey] = true
         return <T>(target: IMetaClass<T>) => {
-            target['sg_clsname'] = clsname
-            target['sg_primary'] = primary
+            target[CLASS_KEY] = clskey
+            target[INDEX_KEY] = idxkey
         }
     }
     /**
@@ -894,7 +916,7 @@ export namespace orm {
      */
     export const field = <T>(cls: IMetaClass<T>) => {
         return (target: Object, field: string) => {
-            const fields = target.constructor['sg_fields'] || (target.constructor['sg_fields'] = {})
+            const fields = target.constructor[FIELD_KEY] || (target.constructor[FIELD_KEY] = {})
             fields[field] = cls
         }
     }
@@ -905,18 +927,13 @@ export namespace orm {
      */
     export const save = <T>(model: T) => {
         if (!model) return
-        const classkey = model.constructor['sg_clsname']
-        const primary = model.constructor['sg_primary']
-        if (!classkey || !primary) {
-            throw new Error(`The Class:${model.constructor.name} did\'t  mark with decorate @store(clsname,primary)`)
-        }
-        const id = model[primary]
-        if (id === undefined || id === null) return
-        const key = classkey + "." + id
-        const keys: any = wx.getStorageSync(classkey) || {}
-        keys[key] = ''
-        wx.setStorageSync(classkey, keys)
-        wx.setStorageSync(key, model)
+        const clskey = getClskey(model.constructor)
+        const idxkey = getIdxkey(model.constructor)
+        const objkey = getObjkey(clskey, model[idxkey])
+        const keys: any = wx.getStorageSync(clskey) || {}
+        keys[objkey] = ''
+        wx.setStorageSync(clskey, keys)
+        wx.setStorageSync(objkey, model)
     }
     /**
      * @description find an storaged object whith id.
@@ -925,13 +942,9 @@ export namespace orm {
      * @throws did't mark error
      */
     export const find = <T>(cls: IMetaClass<T>, id: string | number): T | undefined => {
-        const classkey = cls['sg_clsname']
-        if (!classkey) {
-            throw new Error(`The Class:${cls.name} did\'t  mark with decorate @store(clsname,primary)`)
-        }
-        if (!id) return
-        const json = wx.getStorageSync(classkey + "." + id)
-        return awake(cls, json)
+        const clskey = getClskey(cls)
+        const objkey = getObjkey(clskey, id)
+        return awake(cls, wx.getStorageSync(objkey))
     }
     /**
      * @description find all storaged object of cls.
@@ -939,11 +952,8 @@ export namespace orm {
      * @throws did't mark error
      */
     export const all = <T>(cls: IMetaClass<T>): T[] => {
-        const classkey = cls['sg_clsname']
-        if (!classkey) {
-            throw new Error(`The Class:${cls.name} did\'t  mark with decorate @store(clsname,primary)`)
-        }
-        const keys = wx.getStorageSync(classkey)
+        const clskey = getClskey(cls)
+        const keys = wx.getStorageSync(clskey)
         if (!keys) return []
         const result: T[] = []
         for (const key in keys) {
@@ -960,11 +970,8 @@ export namespace orm {
      * @throws did't mark error
      */
     export const count = <T>(cls: IMetaClass<T>): number => {
-        const classkey = cls['sg_clsname']
-        if (!classkey) {
-            throw new Error(`The Class:${cls.name} did\'t  mark with decorate @store(clsname,primary)`)
-        }
-        const keys = wx.getStorageSync(classkey)
+        const clskey = getClskey(cls)
+        const keys = wx.getStorageSync(clskey)
         return keys ? Object.keys(keys).length : 0
     }
     /**
@@ -973,16 +980,13 @@ export namespace orm {
      * @throws did't mark error
      */
     export const clear = <T>(cls: IMetaClass<T>): void => {
-        const classkey = cls['sg_clsname']
-        if (!classkey) {
-            throw new Error(`The Class:${cls.name} did\'t  mark with decorate @store(clsname,primary)`)
-        }
-        const keys = wx.getStorageSync(classkey)
+        const clskey = getClskey(cls)
+        const keys = wx.getStorageSync(clskey)
         if (keys) {
             for (const key in keys) {
                 wx.removeStorageSync(key)
             }
-            wx.removeStorageSync(classkey)
+            wx.removeStorageSync(clskey)
         }
     }
     /**
@@ -992,11 +996,8 @@ export namespace orm {
      * @throws did't mark error
      */
     export const remove = <T>(cls: IMetaClass<T>, id: string | number) => {
-        const classkey = cls['sg_clsname']
-        if (!classkey) {
-            throw new Error(`The Class:${cls.name} did\'t  mark with decorate @store(clsname,primary)`)
-        }
-        if (!id) return;
-        wx.removeStorageSync(classkey + "." + id)
+        const clskey = getClskey(cls)
+        const objkey = getObjkey(clskey, id)
+        wx.removeStorageSync(objkey)
     }
 }
