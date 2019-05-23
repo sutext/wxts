@@ -3,8 +3,8 @@
 .DS_Store
 .idea
 .vscode
-.index.d.ts
-.index.js
+index.d.ts
+index.js
 node_modules
 dist
 lib
