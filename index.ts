@@ -956,6 +956,16 @@ export namespace orm {
         return awake(cls, getItem(objkey))
     }
     /**
+     * @description find all storaged object's primary key of cls.
+     * @param cls the storage class witch must be mark with @storage(...)
+     * @throws did't mark error
+     */
+    export const ids = <T>(cls: IMetaClass<T>): string[] => {
+        const clskey = getClskey(cls)
+        const keys = getItem(clskey)
+        return keys ? Object.keys(keys) : []
+    }
+    /**
      * @description find all storaged object of cls.
      * @param cls the storage class witch must be mark with @store(...)
      * @throws did't mark error
@@ -979,9 +989,7 @@ export namespace orm {
      * @throws did't mark error
      */
     export const count = <T>(cls: IMetaClass<T>): number => {
-        const clskey = getClskey(cls)
-        const keys = getItem(clskey)
-        return keys ? Object.keys(keys).length : 0
+        return ids(cls).length
     }
     /**
      * @description remove all storaged object of cls.
@@ -1008,9 +1016,10 @@ export namespace orm {
         const clskey = getClskey(cls)
         const objkey = getObjkey(clskey, id)
         const keys = getItem(clskey)
-        if (!keys) return
-        delete keys[objkey]
-        removeItem(objkey)
-        setItem(clskey, keys)
+        if (keys && keys[objkey]) {
+            delete keys[objkey]
+            removeItem(objkey)
+            setItem(clskey, keys)
+        }
     }
 }
