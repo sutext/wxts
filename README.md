@@ -1,7 +1,7 @@
 # 纯 typescript 风格的小程序开发基础库
 
 ## notice
-IPage和Widget内 不能使用箭头函数 否则 this 将无法指向正确的对象
+IApp,IPage和Widget内 不能使用箭头函数 否则 this 将无法指向正确的对象
 tsconfig.json 的 compilerOptions 中需添加experimentalDecorators = true  
 
 ## Installing

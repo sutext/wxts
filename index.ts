@@ -783,7 +783,7 @@ export namespace sys {
     export const oknum = (value: any) => {
         const type = typeof value
         switch (type) {
-            case 'string': return /^\d+\.?\d*$/.test(value)
+            case 'string': return /^\d+(\.\d+)?$/.test(value)
             case 'number': return true
             default: return false
         }
@@ -888,6 +888,15 @@ export namespace orm {
         if (!clskey || !id) return null
         return `${clskey}.${id}`
     }
+    function getItem(key: string) {
+        return wx.getStorageSync(key)
+    }
+    function setItem(key: string, data: any) {
+        wx.setStorageSync(key, data);
+    }
+    function removeItem(key: string) {
+        wx.removeStorageSync(key)
+    }
     /**
      * @description  A class decorate use to store class.
      * @param clsname the class name of your storage class
@@ -930,10 +939,10 @@ export namespace orm {
         const clskey = getClskey(model.constructor)
         const idxkey = getIdxkey(model.constructor)
         const objkey = getObjkey(clskey, model[idxkey])
-        const keys: any = wx.getStorageSync(clskey) || {}
+        const keys: any = getItem(clskey) || {}
         keys[objkey] = ''
-        wx.setStorageSync(clskey, keys)
-        wx.setStorageSync(objkey, model)
+        setItem(clskey, keys)
+        setItem(objkey, model)
     }
     /**
      * @description find an storaged object whith id.
@@ -944,7 +953,7 @@ export namespace orm {
     export const find = <T>(cls: IMetaClass<T>, id: string | number): T | undefined => {
         const clskey = getClskey(cls)
         const objkey = getObjkey(clskey, id)
-        return awake(cls, wx.getStorageSync(objkey))
+        return awake(cls, getItem(objkey))
     }
     /**
      * @description find all storaged object of cls.
@@ -953,11 +962,11 @@ export namespace orm {
      */
     export const all = <T>(cls: IMetaClass<T>): T[] => {
         const clskey = getClskey(cls)
-        const keys = wx.getStorageSync(clskey)
+        const keys = getItem(clskey)
         if (!keys) return []
         const result: T[] = []
         for (const key in keys) {
-            const obj = awake(cls, wx.getStorageSync(key))
+            const obj = awake(cls, getItem(key))
             if (obj) {
                 result.push(obj)
             }
@@ -971,7 +980,7 @@ export namespace orm {
      */
     export const count = <T>(cls: IMetaClass<T>): number => {
         const clskey = getClskey(cls)
-        const keys = wx.getStorageSync(clskey)
+        const keys = getItem(clskey)
         return keys ? Object.keys(keys).length : 0
     }
     /**
@@ -981,12 +990,12 @@ export namespace orm {
      */
     export const clear = <T>(cls: IMetaClass<T>): void => {
         const clskey = getClskey(cls)
-        const keys = wx.getStorageSync(clskey)
+        const keys = getItem(clskey)
         if (keys) {
             for (const key in keys) {
-                wx.removeStorageSync(key)
+                removeItem(key)
             }
-            wx.removeStorageSync(clskey)
+            removeItem(clskey)
         }
     }
     /**
@@ -998,6 +1007,10 @@ export namespace orm {
     export const remove = <T>(cls: IMetaClass<T>, id: string | number) => {
         const clskey = getClskey(cls)
         const objkey = getObjkey(clskey, id)
-        wx.removeStorageSync(objkey)
+        const keys = getItem(clskey)
+        if (!keys) return
+        delete keys[objkey]
+        removeItem(objkey)
+        setItem(clskey, keys)
     }
 }
