@@ -62,6 +62,7 @@ export function page(inital?: wx.IAnyObject) {
         Page(trim(param))
     }
 }
+
 export class Widget<D = any> implements wx.IComponent {
     [other: string]: any
     public readonly data: D & wx.IAnyObject
@@ -77,6 +78,28 @@ export class Widget<D = any> implements wx.IComponent {
      * @param callback setData引起的界面更新渲染完毕后的回调函数，最低基础库： `1.5.0` 
      */
     public readonly setData: <K extends keyof D>(data: D | Pick<D, K>, callback?: () => void) => void;
+    /**
+     * @description 判断模态弹窗是否显示 
+     * @warn 当组件继承自wxts-ui 中的 modal Behavior 时此方法可用否则undefined
+     */
+    public readonly isShow: () => boolean
+    /**
+     * @description 切换模态弹窗显示状态
+     * @warn 当组件继承自wxts-ui 中的 modal Behavior 时此方法可用，否则undefined
+     */
+    public readonly toggle: () => void
+    /**
+     * @description 呈现模态弹窗
+     * @warn 当组件继承自wxts-ui 中的 modal Behavior 时此方法可用，否则undefined
+     */
+    public readonly present: () => void
+    /**
+     * @description 隐藏模态弹窗
+     * @warn 当组件继承自wxts-ui 中的 modal Behavior 时此方法可用，否则undefined
+     */
+    public readonly dismiss: () => void
+
+    //------- 以下方法 由微信小程序基础库提供实现
     public readonly triggerEvent: (name: string, detail?: any) => void
     public readonly selectComponent: (selector: string) => any
     public readonly selectAllComponents: () => any[]
