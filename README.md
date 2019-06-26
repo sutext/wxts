@@ -1,8 +1,9 @@
-# 纯 typescript 风格的小程序开发基础库
+# WXTS 纯typescript风格的小程序开发基础库
 
 ## notice
-IApp,IPage和Widget内 不能使用箭头函数 否则 this 将无法指向正确的对象
-tsconfig.json 的 compilerOptions 中需添加experimentalDecorators = true  
+
+* 受typescript编译机制以及小程序架构的限制，IApp,IPage和Widget组件内 不能使用箭头成员函数 否则this将无法指向正确的组件对象
+* tsconfig.json 的 compilerOptions 中需添加experimentalDecorators = true  
 
 ## Installing
 
@@ -11,17 +12,27 @@ For the latest stable version:
 ```bash
 npm install -g wxts-cli
 ```
-## start
+
+## 扩展包
+
+* [wxts-cli](https://www.npmjs.com/package/wxts-cli)    `wxts专用编译脚手架，用于支持npm包Promise等特性 需全局安装`
+* [wxts-ui](https://www.npmjs.com/package/wxts-ui) `丰富的typescript风格的原生小程序的UI扩展库`
+* [wxts-js](https://www.npmjs.com/package/wxts-js) `扩展原生js标准数据类型 加入许多实用方法`
+  
+## 开始使用
+
 ```bash
 wxts new myapp
 cd myapp
 npm start
 ```
-Then open the wechat developer tools from build dir.
 
-## example
+然后用微信开发者工具打开工程目录下的build目录 就可以预览模版项目了
+
+## 示例代码
 
 For src/app.ts :
+
 ```ts
 import { app, IApp} from 'wxts'
 import {socket} from './socket'
@@ -41,7 +52,9 @@ export default class App extends IApp implements wx.IApp {
     }
 }
 ```
+
 For src/widgets/hello/index.ts :
+
 ```ts
 import { widget, Widget} from 'wxts'
 @widget({title:'hello widget'})
@@ -51,11 +64,15 @@ export default class Index extends Widget implements wx.IComponent{
     }
 }
 ```
+
 For src/widgets/hello/index.wxml
+
 ```xml
 <view>{{title}}</view>
 ```
+
 For src/pages/index/index.ts : 
+
 ```ts
 import { page, IPage } from 'wxts'
 import Hello from '../../widgets/hello/index'
@@ -71,7 +88,9 @@ export default class Index extends IPage implements wx.IPage {
     }
 }
 ```
+
 For src/pages/index/index.wxml :
+
 ```xml
 <view class="content">
     <hello id="hello" />
@@ -79,7 +98,9 @@ For src/pages/index/index.wxml :
     <button bind:tap="sayWorld">say world</button>
 </view>
 ```
+
 For src/pages/index/index.wxss ：
+
 ```css
 .content{
     display:flex;
@@ -89,7 +110,9 @@ For src/pages/index/index.wxss ：
     padding: 0 15px;
 }
 ```
+
 For src/pages/index/index.json :
+
 ```json
 {
     "usingComponents": {
@@ -98,8 +121,10 @@ For src/pages/index/index.json :
 }
 ```
 
-#Netowrk
+## Netowrk
+
 for netowrk.ts
+
 ```ts
 import * as wxts from "wxts";
 class Network extends wxts.Network {
@@ -130,9 +155,10 @@ class Network extends wxts.Network {
     }
 }
 export const net = new Network()
-
 ```
+
 for user.ts
+
 ```ts
 import { net } from './network';
 net.objtask(User, 'user/info', {id:'userid'})
@@ -143,8 +169,11 @@ net.objtask(User, 'user/info', {id:'userid'})
         console.log(e)
     })
 ```
-#Socket
+
+## Socket
+
 for socket.ts
+
 ```ts
 import {Socket}  from "wxts";
 class Client extends Socket {
@@ -162,9 +191,11 @@ class Client extends Socket {
 }
 ```
 
-#storage
+## storage
+
 the storage apis is an simple orm implements by wx.storage.
 for model.ts
+
 ```ts
 import {orm} from "wxts";
 @orm.store('Asset', 'account')
@@ -196,7 +227,9 @@ export class User {
     }
 }
 ```
+
 for other.ts
+
 ```ts
 net.objtask(User, 'user/info', {account:'account'})
     .then(user => {

@@ -13,8 +13,8 @@ export class IApp implements wx.IApp {
 }
 /**
  * @default {}
- * @description global data will be inject to every Ipage.
- * @description if local Ipage provide the same variable it will overwrite
+ * @param global 在app里面注入的参数为全局参数，将被注入到所有的页面里面
+ * @notice 如果某个页面含有和app一样的注入参数，则已页面的参数将覆盖全局参数
  */
 export function app(global?: wx.IAnyObject) {
     if (globalData) {
@@ -50,8 +50,8 @@ export class IPage<D = any> implements wx.IPage {
 }
 /**
  * @default undefined
- * @description inject inital data to the Ipage'data field.
- * @description it will overwrite global data if possible
+ * @param inital 向该页面注入初始化参数，所有参数将被用于初始化页面的data字段
+ * @notice 在页面中注入的参数将覆盖在app里面注入的全局参数
  */
 export function page(inital?: wx.IAnyObject) {
     return function (target: new () => IPage) {
@@ -87,7 +87,7 @@ export class Widget<D = any> implements wx.IComponent {
 const keys = ['properties', 'data', 'behaviors', 'created', 'attached', 'ready', 'moved', 'detached', 'relations', 'externalClasses']
 /**
  * @default undefined
- * @description inject inital data to the Commponent data field.
+ * @param inital 向该组件注入初始化参数，所有参数将被用于初始化组件的data字段
  */
 export function widget(inital?: wx.IAnyObject) {
     return function (target: new () => Widget) {
@@ -163,7 +163,7 @@ export class Network {
     protected resolve(resp: wx.HttpResponse): any {
         throw new Error('Network.resolve must be implement')
     }
-    public readonly anyreq = <T>(req: Network.Request<T>) => {
+    public readonly anyreq = <T = any>(req: Network.Request<T>) => {
         return this.anytask<T>(req.path, req.data, req.options)
     }
     public readonly objreq = <T>(req: Network.Request<T>) => {
@@ -381,12 +381,12 @@ export namespace Network {
      * @param count the complete count
      * @param total the total count
      */
-    export interface Progress {
+    export interface IProgress {
         readonly value: number
         readonly count: number
         readonly total: number
     }
-    export class DataTask<T> implements PromiseLike<T>{
+    export class DataTask<T> implements Promise<T>{
         private readonly promiss: Promise<T>
         private readonly handler: wx.RequestTask
         public readonly [Symbol.toStringTag]: 'Promise' = 'Promise'
@@ -411,7 +411,7 @@ export namespace Network {
         constructor(promiss: Promise<any>, handler: wx.UploadTask) {
             super(promiss, handler)
         }
-        public readonly onProgress = (callback: (progress: Progress) => void) => {
+        public readonly onProgress = (callback: (progress: IProgress) => void) => {
             const handler = this['handler'] as wx.UploadTask
             handler.onProgressUpdate(res => callback({
                 value: res.progress,
@@ -424,7 +424,7 @@ export namespace Network {
         constructor(promiss: Promise<string>, handler: wx.DownloadTask) {
             super(promiss, handler)
         }
-        public readonly onProgress = (callback: (progress: Progress) => void) => {
+        public readonly onProgress = (callback: (progress: IProgress) => void) => {
             const handler = this['handler'] as wx.DownloadTask
             handler.onProgressUpdate(res => callback({
                 value: res.progress,
@@ -662,16 +662,16 @@ export namespace Socket {
         protected get allowPing(): boolean {
             return true
         }
-        /** @description overwrite this method to provide url for web socket */
-        protected buildurl(): string { return '' }
+        /** @overwrite this method to provide url for web socket */
+        protected abstract buildurl(): string
+        /** call when get some message @override point */
+        protected abstract onMessage(msg: any): void
         /** call when some error occur @override point */
         protected onError(res: wx.SocketError) { }
         /** call when socket opend . @override point */
         protected onOpened(header: any, isRetry: boolean) { }
-        /** call when socket closed . @override point */
+        /** call when socket closed @param reason the close reason @override point*/
         protected onClosed(evt: wx.SocketClose, reason: Reason) { }
-        /** call when get some message @override point */
-        protected onMessage(msg: any) { }
         public get status() {
             return this.socket.status
         }
@@ -788,6 +788,14 @@ export namespace sys {
             default: return false
         }
     }
+    /**
+     * @description judge the device‘s screen ratio is greater than 16/9
+     * @example if true the device is likely to be iphoneX or other full screen mobile phone
+     */
+    export const isslim = (function () {
+        const info = wx.getSystemInfoSync()
+        return info.windowHeight / info.windowWidth > 1.78
+    })();
 }
 export namespace pop {
     /**
