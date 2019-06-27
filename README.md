@@ -2,8 +2,11 @@
 
 ## 说明
 
-* 受typescript编译机制以及小程序架构的限制，IApp,IPage和Widget组件内 不能使用箭头成员函数 否则this将无法指向正确的组件对象
-* tsconfig.json 的 compilerOptions 中需添加experimentalDecorators = true  
+* 用wxts开发小程序可以达到完整的语法提示效果和流畅简洁的小程序开发体验。有兴趣同学可联系作者supertext@icloud.com
+* 小程序基础库API庞大目前只根据官方文档提供了大部分常用api的d.ts 声明
+* 受typescript编译器对this指针的处理机制以及小程序脚本运行机制的影响，IApp,IPage和Widget组件的成员函数不能使用箭头成员函数 否则this将无法指向正确的组件对象 其余函数不受影响。
+* tsconfig.json 的 compilerOptions 中需添加experimentalDecorators = true  以打开装饰器特性
+* 除了对小程序基础的ts声明的完善以外，还对网络请求，本地存储，Socket等常用功能提供了纯typescript的封装，简单易用，
 
 ## 安装
 

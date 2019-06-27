@@ -140,10 +140,19 @@ export interface IObserver {
     readonly target: any
     readonly callback: Function
 }
-export class Network {
+/**
+ * @description Network是一个抽象类，用户需继承此类以适配自己的业务逻辑
+ * @description Network是对wx.request做的上层封装，
+ * @description Network提供的是Promise风格的网络请求调用，可使用链式调用和await等特性
+ * @description Netowrk提供了一套网络层到模型层转换的范式，用户调用task方法即可获得结构化的模型
+ * @description Network生成的task被设计成句柄模式，可以abort或者监听请求进度等
+ * @description datatask被创建后会立即自动执行发送请求，若请求达到最大并发数的时候将被挂起，等待其他请求结束后会自动执行。
+ */
+export abstract class Network {
     /**
      * @override point you shoud overwrite this property and provide you custom headers
      * @example 
+     * @default {}
      * **示例代码*
      * ``
      * protected get headers(): any {
@@ -159,6 +168,7 @@ export class Network {
     }
     /**
      * @override point you shoud overwrite this property and provide you custom headers
+     * @default 'POST'
      * @example 
      * **示例代码*
      * ``
@@ -171,19 +181,21 @@ export class Network {
         return 'POST'
     }
     /**
-     * @description resove relative uri to full url
-     * @param path the relative uri
+     * @description 此方法用于构建完整的请求url
+     * @notice 参数不必包含在URL内
+     * @param path 具体api的相对路径
+     * @example path='user/info.json' return 'https://api.yourdomain.com/'+path
      */
-    protected url(path: string): string {
-        throw new Error('Network.url(path:string) must be implement')
-    }
+    protected abstract url(path: string): string
     /**
-     * @description you must provid an resover and return you business object
-     * @param resp the http response object
+     * @description 网络请求成功后会调用此方法对数据进行解析和校验
+     * @notice 用户需要根据自己业务逻辑和数据接口协议提供此方法的实现
+     * @notice 在此方法中抛出的异常将会被DataTask的catch捕获
+     * @notice 此方法为全局解析方法，若具体的网络请求option中传入paser函数将覆盖此默认实现
+     * @param resp 小程序request 相应的数据，该数据已解析为对象
+     * @returns 在objtask objreq arytask aryreq 四个方法中 此处返回的数据将会被传入IMetaClass的构造函数中用于构造结构化的模型
      */
-    protected resolve(resp: wx.HttpResponse): any {
-        throw new Error('Network.resolve must be implement')
-    }
+    protected abstract resolve(resp: wx.HttpResponse): any
     public readonly anyreq = <T = any>(req: Network.Request<T>) => {
         return this.anytask<T>(req.path, req.data, req.options)
     }
@@ -455,6 +467,12 @@ export namespace Network {
         }
     }
 }
+/**
+ * @description Socket 是对wx.SocketTask的上层封装
+ * @description Socket 力图实现WebSocket的标准api接口
+ * @description Socket 实现了Websoket的状态机
+ * @description Socket 实现了短线重连机制，重连频率等设定由this.retry设置
+ */
 export class Socket {
     private task: wx.SocketTask
     private _status: Socket.Status = 'closed'
@@ -628,9 +646,9 @@ export namespace Socket {
         }
     }
     /**
-     * @description socket client wrapped on Socket
-     * @description you must inherit this class to implements your logic
-     * @implements client PING heartbeat mechanis
+     * @description socket 客户端被设计为一个抽象类，是基于Socket上一层封装
+     * @description socket 客户端实现了客户端主动发起的PING PONG机制，以维持心跳，
+     * @notice ping pong 频率可由this.ping设置
      */
     export abstract class Client {
         /**
