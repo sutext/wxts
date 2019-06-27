@@ -26,7 +26,6 @@ export function app(global?: wx.IAnyObject) {
     }
 }
 export class IPage<D = any> implements wx.IPage {
-    [other: string]: any
     public readonly data: D & wx.IAnyObject
     public readonly route: string
     public readonly options: wx.IAnyObject
@@ -64,7 +63,6 @@ export function page(inital?: wx.IAnyObject) {
 }
 
 export class Widget<D = any> implements wx.IComponent {
-    [other: string]: any
     public readonly data: D & wx.IAnyObject
     /**
      * @description `setData` 函数用于将数据从逻辑层发送到视图层（异步），同时改变对应的 `this.data` 的值（同步）。

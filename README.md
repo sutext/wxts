@@ -1,11 +1,11 @@
 # WXTS 纯typescript风格的小程序开发基础库
 
-## notice
+## 说明
 
 * 受typescript编译机制以及小程序架构的限制，IApp,IPage和Widget组件内 不能使用箭头成员函数 否则this将无法指向正确的组件对象
 * tsconfig.json 的 compilerOptions 中需添加experimentalDecorators = true  
 
-## Installing
+## 安装
 
 For the latest stable version:
 
@@ -176,17 +176,22 @@ for socket.ts
 
 ```ts
 import {Socket}  from "wxts";
-class Client extends Socket {
-    protected maxAttemptTimes: number = 10 //config attemp times
-    protected heartbeatInterval: number = 30//config heartbeat interval
-    get buildurl(): string {
-        return "wss://" + env.host + "/socket/ws/customer?token=" + 'yourtoken'
+class Client extends Socket.Client {
+    buildurl(): string {
+        return "wss://example.com/socket/ws/customer?token=" + 'yourtoken'
     }
     get isLogin() {
-        return constant.isLogin
+        return true
     }
-    onClose(evt: wx.SocketClose, reason: Socket.Reason) {
-        wxts.pop.alert('您已在别处登录，请重新登录', () => constant.logout())
+    onClosed(evt: wx.SocketClose, reason: Socket.Reason) {
+        if (evt.code === 4001) {
+            pop.alert('您已在别处登录，请重新登录', () => {
+                //TODO: logout logic
+            })
+        }
+    }
+    onMessage(msg: any) {
+        this.observers.message.forEach(ele => ele.callback.call(ele.target, msg))
     }
 }
 ```

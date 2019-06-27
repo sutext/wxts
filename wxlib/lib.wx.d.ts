@@ -2373,6 +2373,30 @@ declare namespace wx {
         info(...arg: any): void;
         debug(...arg: any): void;
     }
+    interface FontFaceDesc {
+        style?: 'normal' | 'italic' | 'oblique',
+        weight?: 'normal' | 'bold' | 100 | 200 | 300 | 400 | 500 | 600 | 700 | 800 | 900,
+        variant?: 'normal' | 'small-caps' | 'inherit'
+    }
+    interface FontFaceParams extends BaseParams {
+        family: string
+        source: string
+        desc?: FontFaceDesc
+    }
+    interface MenuButtonRect {
+        /**胶囊上边距px */
+        top: number
+        /**胶囊左边距px */
+        left: number
+        /**胶囊右边距px */
+        right: number
+        /**胶囊下边距px */
+        bottom: number
+        /**胶囊宽度px */
+        width: number
+        /**胶囊高度px */
+        height: number
+    }
 }
 declare namespace wx {
     interface IReferrerInfo {
@@ -2656,8 +2680,11 @@ declare namespace wx {
         externalClasses?: string[]
     }
 }
+
 declare namespace wx {
     interface API {
+        readonly env: { USER_DATA_PATH: string };
+
         // 网络 API 列表
         /**
          * 发起网络请求
@@ -3067,6 +3094,19 @@ declare namespace wx {
          * @description 获取更新管理器对象
          */
         getUpdateManager(): UpdateManager;
+        /**加载字体 */
+        loadFontFace(opts: FontFaceParams): void;
+        /**下一个runloop执行一段代码 */
+        nextTick(callback: () => void): void;
+        /**获取右上角胶囊位置大小信息 @since 2.1.0 */
+        getMenuButtonBoundingClientRect(): MenuButtonRect
+        /**监听小程序窗口大小变化 @since 2.3.0 */
+        onWindowResize(callback: (size: { windowWidth: number, windowHeight: number }) => void): void
+        /**取消监听小程序窗口大小变化 @since 2.3.0 */
+        offWindowResize(callback: (size: { windowWidth: number, windowHeight: number }) => void): void
+        /**监听键盘高度变化 @since 2.7.0 */
+        onKeyboardHeightChange(callback: (res: { height: number }) => void): void
+        getSelectedTextRange(params: BaseParams & { success: (res: { height: number }) => void }): void
     }
 }
 declare const wx: wx.API;
