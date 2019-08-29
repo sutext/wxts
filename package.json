@@ -1,16 +1,15 @@
 {
     "name": "wxts",
-    "version": "1.2.9",
+    "version": "2.0.0",
     "description": "wexin typescript dev suport!",
     "main": "index.js",
     "files": [
         "index.js",
         "index.d.ts",
-        "wxlib"
+        "lib.wx.std.d.ts",
+        "lib.wx.es6.d.ts"
     ],
     "scripts": {
-        "install": "node wxlib/install.js",
-        "start": "tsc",
         "test": "node test.js"
     },
     "repository": {
@@ -29,8 +28,5 @@
     "bugs": {
         "url": "https://github.com/sutext/wxts/issues"
     },
-    "homepage": "https://github.com/sutext/wxts#readme",
-    "devDependencies": {
-        "typescript": "^3.1.6"
-    }
+    "homepage": "https://github.com/sutext/wxts#readme"
 }

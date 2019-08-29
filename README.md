@@ -4,7 +4,7 @@
 
 * 用wxts开发小程序可以达到完整的语法提示效果和流畅简洁的小程序开发体验。有兴趣同学可联系作者supertext@icloud.com
 * 小程序基础库API庞大目前只根据官方文档提供了大部分常用api的d.ts 声明
-* 受typescript编译器对this指针的处理机制以及小程序脚本运行机制的影响，IApp,IPage和Widget组件的成员函数不能使用箭头成员函数 否则this将无法指向正确的组件对象 其余函数不受影响。
+* 受typescript编译器对this指针的处理机制以及小程序脚本运行机制的影响，App,Page和Widget组件的成员函数不能使用箭头成员函数 否则this将无法指向正确的组件对象 其余函数不受影响。
 * tsconfig.json 的 compilerOptions 中需添加experimentalDecorators = true  以打开装饰器特性
 * 除了对小程序基础的ts声明的完善以外，还对网络请求，本地存储，Socket等常用功能提供了纯typescript的封装，简单易用，
 
@@ -20,7 +20,6 @@ npm install -g wxts-cli
 
 * [wxts-cli](https://www.npmjs.com/package/wxts-cli)    `wxts专用编译脚手架，用于支持npm包Promise等特性 需全局安装`
 * [wxts-ui](https://www.npmjs.com/package/wxts-ui) `丰富的typescript风格的原生小程序的UI扩展库`
-* [wxts-js](https://www.npmjs.com/package/wxts-js) `扩展原生js标准数据类型 加入许多实用方法`
   
 ## 开始使用
 
@@ -37,11 +36,11 @@ npm start
 For src/app.ts :
 
 ```ts
-import { app, IApp} from 'wxts'
+import 'wxts'
 import {socket} from './socket'
 const env = wx.getSystemInfoSync()
 @app({ env })
-export default class App extends IApp implements wx.IApp {
+export default class App extends wx.App implements wx.IApp {
     onLaunch() {
         socket.on('message',this,this.onMessage)
         socket.start()
@@ -59,9 +58,8 @@ export default class App extends IApp implements wx.IApp {
 For src/widgets/hello/index.ts :
 
 ```ts
-import { widget, Widget} from 'wxts'
-@widget({title:'hello widget'})
-export default class Index extends Widget implements wx.IComponent{
+@wx.widget({title:'hello widget'})
+export default class Index extends wx.Widget implements wx.IComponent{
     sayWorld(){
         this.setData({title:"hello world!!!"})
     }
@@ -77,11 +75,10 @@ For src/widgets/hello/index.wxml
 For src/pages/index/index.ts : 
 
 ```ts
-import { page, IPage } from 'wxts'
 import Hello from '../../widgets/hello/index'
 const items = [{ title: "系统版本", key: "model" }, { title: "屏幕宽度", key: "screenWidth" }, { title: "屏幕高度", key: "screenHeight" }]
-@page({ items })
-export default class Index extends IPage implements wx.IPage {
+@wx.page({ items })
+export default class Index extends wx.Page implements wx.IPage {
     private hello: Hello
     onLoad() {
         this.hello = this.selectComponent('#hello')
@@ -129,8 +126,7 @@ For src/pages/index/index.json :
 for netowrk.ts
 
 ```ts
-import * as wxts from "wxts";
-class Network extends wxts.Network {
+class Network extends wx.Network {
     protected  method:'POST'|'GET' = 'POST'//config http method
     protected get headers() { //config http headers
         const header: any = {}
@@ -178,8 +174,7 @@ net.objtask(User, 'user/info', {id:'userid'})
 for socket.ts
 
 ```ts
-import {Socket}  from "wxts";
-class Client extends Socket.Client {
+class Client extends wx.Socket.Client {
     buildurl(): string {
         return "wss://example.com/socket/ws/customer?token=" + 'yourtoken'
     }
@@ -197,16 +192,16 @@ class Client extends Socket.Client {
         this.observers.message.forEach(ele => ele.callback.call(ele.target, msg))
     }
 }
+export const socket = new Client();
 ```
 
 ## storage
 
 the storage apis is an simple orm implements by wx.storage.
 for model.ts
-
 ```ts
-import {orm} from "wxts";
-@orm.store('Asset', 'account')
+const {store,field} = wx.orm;
+@store('Asset', 'account')
 export class Asset{
     public readonly account: string
     public readonly balance:number
@@ -217,14 +212,14 @@ export class Asset{
         this.balance = json.balance || 0
     }
 }
-@orm.store('User', 'account')
+@store('User', 'account')
 export class User {
     public readonly account: string
     public readonly nickname: string
     public readonly avatar: string
     public readonly phone: string
     public readonly area: string
-    @orm.field(Asset)
+    @field(Asset)
     public readonly asset: Asset
     constructor(json?: any) {
         if (!json) {
@@ -241,15 +236,15 @@ for other.ts
 ```ts
 net.objtask(User, 'user/info', {account:'account'})
     .then(user => {
-        storage.save(user)
+        wx.orm.save(user)
     })
     .catch(e=>{
         console.log(e)
     })
-const user = storage.find(User,'32132')
+const user = wx.orm.find(User,'32132')
 console.log(user)
-const count = storage.count(User)
+const count = wx.orm.count(User)
 console.log(count)
-const users = storage.all(User)
+const users = wx.orm.all(User)
 console.log(users)
 ```

@@ -3,13 +3,5 @@
 .DS_Store
 .idea
 .vscode
-index.d.ts
-index.js
 node_modules
-dist
-lib
-build
 npm-debug.log
-yarn.lock
-miniprogram_dist
-test/miniprogram_npm
