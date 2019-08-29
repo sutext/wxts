@@ -1,6 +1,6 @@
 'use strict';
 Object.defineProperty(exports, '__esModule', { value: true });
-var wx = wx || exports;
+var ns = wx || exports;
 var __extends = (function() {
     var extendStatics = function(d, b) {
         extendStatics =
@@ -22,6 +22,7 @@ var __extends = (function() {
         d.prototype = b === null ? Object.create(b) : ((__.prototype = b.prototype), new __());
     };
 })();
+
 (function() {
     'use strict';
     Number.prototype.fixlen = function(len) {
@@ -218,6 +219,7 @@ var __extends = (function() {
         configurable: true
     });
 })();
+
 (function(ns) {
     function trim(origin) {
         var result = {};
@@ -268,9 +270,11 @@ var __extends = (function() {
             Component(result);
         };
     };
-})(wx);
+})(ns);
+
 var sys;
 var pop;
+
 (function(ns) {
     var Network = (function() {
         function Network() {
@@ -287,21 +291,21 @@ var pop;
                 return _this.arytask(req.meta, req.path, req.data, req.options);
             };
             this.upload = function(file, options) {
-                wx.showNavigationBarLoading();
+                ns.showNavigationBarLoading();
                 var loading = options && options.loading;
                 if (options && options.loading) {
                     pop.wait(typeof loading === 'string' ? loading : undefined);
                 }
                 var handler;
                 var promiss = new Promise(function(resolve, reject) {
-                    handler = wx.uploadFile({
+                    handler = ns.uploadFile({
                         name: file.name,
                         header: _this.headers,
                         url: _this.url(file.path),
                         filePath: file.file,
                         formData: file.data,
                         complete: function(res) {
-                            wx.hideNavigationBarLoading();
+                            ns.hideNavigationBarLoading();
                             pop.idle();
                             try {
                                 res.data = JSON.parse(res.data);
@@ -317,20 +321,20 @@ var pop;
                 return new Network.UploadTask(promiss, handler);
             };
             this.anytask = function(path, data, options) {
-                wx.showNavigationBarLoading();
+                ns.showNavigationBarLoading();
                 var loading = options && options.loading;
                 if (options && options.loading) {
                     pop.wait(typeof loading === 'string' ? loading : undefined);
                 }
                 var handler;
                 var promiss = new Promise(function(resolve, reject) {
-                    handler = wx.request({
+                    handler = ns.request({
                         url: _this.url(path),
                         header: _this.headers,
                         data: data,
                         method: (options && options.method) || _this.method,
                         complete: function(result) {
-                            wx.hideNavigationBarLoading();
+                            ns.hideNavigationBarLoading();
                             if (options && options.loading) pop.idle();
                             try {
                                 var parser = (options && options.parser) || _this.resolve.bind(_this);
@@ -348,20 +352,20 @@ var pop;
                 return new Network.DataTask(promiss, handler);
             };
             this.objtask = function(c, path, data, options) {
-                wx.showNavigationBarLoading();
+                ns.showNavigationBarLoading();
                 var loading = options && options.loading;
                 if (options && options.loading) {
                     pop.wait(typeof loading === 'string' ? loading : undefined);
                 }
                 var handler;
                 var promiss = new Promise(function(resolve, reject) {
-                    handler = wx.request({
+                    handler = ns.request({
                         url: _this.url(path),
                         header: _this.headers,
                         data: data,
                         method: (options && options.method) || _this.method,
                         complete: function(result) {
-                            wx.hideNavigationBarLoading();
+                            ns.hideNavigationBarLoading();
                             if (options && options.loading) pop.idle();
                             try {
                                 var parser = (options && options.parser) || _this.resolve.bind(_this);
@@ -379,20 +383,20 @@ var pop;
                 return new Network.DataTask(promiss, handler);
             };
             this.arytask = function(c, path, data, options) {
-                wx.showNavigationBarLoading();
+                ns.showNavigationBarLoading();
                 var loading = options && options.loading;
                 if (options && options.loading) {
                     pop.wait(typeof loading === 'string' ? loading : undefined);
                 }
                 var handler;
                 var promiss = new Promise(function(resolve, reject) {
-                    handler = wx.request({
+                    handler = ns.request({
                         url: _this.url(path),
                         header: _this.headers,
                         data: data,
                         method: (options && options.method) || _this.method,
                         complete: function(result) {
-                            wx.hideNavigationBarLoading();
+                            ns.hideNavigationBarLoading();
                             if (options && options.loading) pop.idle();
                             try {
                                 var parser = (options && options.parser) || _this.resolve.bind(_this);
@@ -415,17 +419,17 @@ var pop;
                 return new Network.DataTask(promiss, handler);
             };
             this.download = function(params, options) {
-                wx.showNavigationBarLoading();
+                ns.showNavigationBarLoading();
                 var loading = options && options.loading;
                 if (options && options.loading) {
                     pop.wait(typeof loading === 'string' ? loading : undefined);
                 }
                 var handler;
                 var promiss = new Promise(function(resolve, reject) {
-                    handler = wx.downloadFile(
+                    handler = ns.downloadFile(
                         Object.assign(params, {
                             complete: function(res) {
-                                wx.hideNavigationBarLoading();
+                                ns.hideNavigationBarLoading();
                                 pop.idle();
                                 if (typeof res.tempFilePath === 'string') {
                                     resolve(res.tempFilePath);
@@ -439,20 +443,20 @@ var pop;
                 return new Network.DownloadTask(promiss, handler);
             };
             this.maptask = function(meta, path, data, options) {
-                wx.showNavigationBarLoading();
+                ns.showNavigationBarLoading();
                 var loading = options && options.loading;
                 if (options && options.loading) {
                     pop.wait(typeof loading === 'string' ? loading : undefined);
                 }
                 var handler;
                 var promiss = new Promise(function(resolve, reject) {
-                    handler = wx.request({
+                    handler = ns.request({
                         url: _this.url(path),
                         header: _this.headers,
                         data: data,
                         method: (options && options.method) || _this.method,
                         complete: function(result) {
-                            wx.hideNavigationBarLoading();
+                            ns.hideNavigationBarLoading();
                             if (options && options.loading) pop.idle();
                             try {
                                 var parser = (options && options.parser) || _this.resolve.bind(_this);
@@ -572,6 +576,7 @@ var pop;
         Network.DownloadTask = DownloadTask;
     })(Network);
     ns.Network = Network;
+
     var Socket = (function() {
         function Socket(builder) {
             var _this = this;
@@ -581,7 +586,7 @@ var pop;
             this.open = function() {
                 if (_this._status === 'opened' || _this._status === 'opening' || typeof _this.buildurl !== 'function') return;
                 var url = _this.buildurl();
-                _this.task = wx.connectSocket({ url: url });
+                _this.task = ns.connectSocket({ url: url });
                 _this.task.onOpen(function(res) {
                     return _this.onOpenCallback(res);
                 });
@@ -669,7 +674,6 @@ var pop;
         });
         return Socket;
     })();
-    ns.Socket = Socket;
     (function(Socket) {
         var Observers = (function() {
             function Observers() {
@@ -841,7 +845,9 @@ var pop;
         })();
         Socket.Client = Client;
     })(Socket);
-})(wx);
+    ns.Socket = Socket;
+})(ns);
+
 (function(sys) {
     sys.debug = true;
     sys.log = function() {
@@ -898,28 +904,29 @@ var pop;
     };
     Object.defineProperty(sys, 'isslim', {
         get: function() {
-            var info = wx.getSystemInfoSync();
+            var info = ns.getSystemInfoSync();
             return info.windowHeight / info.windowWidth > 1.78;
         },
         enumerable: true,
         configurable: true
     });
-})((sys = wx.sys || (wx.sys = {})));
+})((sys = ns.sys || (ns.sys = {})));
+
 (function(pop) {
     pop.wait = function(title) {
-        wx.showLoading({ title: title || '加载中', mask: true });
+        ns.showLoading({ title: title || '加载中', mask: true });
     };
     pop.idle = function() {
-        wx.hideLoading();
+        ns.hideLoading();
     };
     pop.error = function(err) {
-        wx.showModal({ title: '提示', content: err.message || '服务异常', showCancel: false });
+        ns.showModal({ title: '提示', content: err.message || '服务异常', showCancel: false });
     };
     pop.alert = function(content, confirm) {
-        wx.showModal({ title: '提示', content: content, showCancel: false, success: confirm });
+        ns.showModal({ title: '提示', content: content, showCancel: false, success: confirm });
     };
     pop.dialog = function(content, confirm, cancel) {
-        wx.showModal({
+        ns.showModal({
             title: '提示',
             content: content,
             showCancel: true,
@@ -933,12 +940,13 @@ var pop;
         });
     };
     pop.remind = function(ok, dismiss) {
-        wx.showToast({ title: ok, icon: 'success', duration: 1000, mask: true });
+        ns.showToast({ title: ok, icon: 'success', duration: 1000, mask: true });
         setTimeout(function() {
             return sys.call(dismiss);
         }, 1000);
     };
-})((pop = wx.pop || (wx.pop = {})));
+})((pop = ns.pop || (ns.pop = {})));
+
 (function(orm) {
     var FIELD_KEY = '__orm_field';
     var CLASS_KEY = '__orm_class';
@@ -981,17 +989,17 @@ var pop;
         return idxkey;
     }
     function getObjkey(clskey, id) {
-        if (!clskey || !id) return null;
+        if (!clskey || !id) throw new Error('Cannot create objkey for id:' + id + 'of class:' + clskey);
         return clskey + '.' + id;
     }
     function getItem(key) {
-        return wx.getStorageSync(key);
+        return ns.getStorageSync(key);
     }
     function setItem(key, data) {
-        wx.setStorageSync(key, data);
+        ns.setStorageSync(key, data);
     }
     function removeItem(key) {
-        wx.removeStorageSync(key);
+        ns.removeStorageSync(key);
     }
     orm.store = function(clskey, idxkey) {
         if (!sys.okstr(clskey)) {
@@ -1071,4 +1079,4 @@ var pop;
             setItem(clskey, keys);
         }
     };
-})(wx.orm || (wx.orm = {}));
+})(ns.orm || (ns.orm = {}));
