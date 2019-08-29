@@ -1,6 +1,6 @@
 {
     "name": "wxts",
-    "version": "2.0.0",
+    "version": "2.0.1",
     "description": "wexin typescript dev suport!",
     "main": "index.js",
     "files": [

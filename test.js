@@ -1,8 +1,8 @@
 var wxts = require('./index');
 var sys = wxts.sys;
 sys.debug = true;
-var func = sys.oknum
-var log = sys.log
+var func = sys.oknum;
+var log = sys.log;
 log('0:', func(0));
 log('110:', func(110));
 log('str:1:', func('1'));

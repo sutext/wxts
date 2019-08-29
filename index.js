@@ -1,6 +1,6 @@
 'use strict';
 Object.defineProperty(exports, '__esModule', { value: true });
-
+var wx = wx || exports;
 var __extends = (function() {
     var extendStatics = function(d, b) {
         extendStatics =
@@ -257,9 +257,9 @@ var __extends = (function() {
             var result = { methods: {} };
             for (var key in param) {
                 if (keys.contains(key)) {
-                    result.methods[key] = param[key];
-                } else if (key !== 'constructor') {
                     result[key] = param[key];
+                } else if (key !== 'constructor') {
+                    result.methods[key] = param[key];
                 }
             }
             var data = {};
@@ -269,6 +269,8 @@ var __extends = (function() {
         };
     };
 })(wx);
+var sys;
+var pop;
 (function(ns) {
     var Network = (function() {
         function Network() {
@@ -894,11 +896,15 @@ var __extends = (function() {
                 return false;
         }
     };
-    sys.isslim = (function() {
-        var info = wx.getSystemInfoSync();
-        return info.windowHeight / info.windowWidth > 1.78;
-    })();
-})(wx.sys || (wx.sys = {}));
+    Object.defineProperty(sys, 'isslim', {
+        get: function() {
+            var info = wx.getSystemInfoSync();
+            return info.windowHeight / info.windowWidth > 1.78;
+        },
+        enumerable: true,
+        configurable: true
+    });
+})((sys = wx.sys || (wx.sys = {})));
 (function(pop) {
     pop.wait = function(title) {
         wx.showLoading({ title: title || '加载中', mask: true });
@@ -932,7 +938,7 @@ var __extends = (function() {
             return sys.call(dismiss);
         }, 1000);
     };
-})(wx.pop || (wx.pop = {}));
+})((pop = wx.pop || (wx.pop = {})));
 (function(orm) {
     var FIELD_KEY = '__orm_field';
     var CLASS_KEY = '__orm_class';
