@@ -199,7 +199,7 @@ declare namespace wx {
          * 用户点击分享按钮的时候会调用
          * 此事件需要 return 一个 Object 用于自定以分享内容
          */
-        protected onShareAppMessage?: (options?: IShareAppOption) => IShareAppData;
+        protected onShareAppMessage?(options?: IShareAppOption): IShareAppData;
         /**
          * @description `setData` 函数用于将数据从逻辑层发送到视图层（异步），同时改变对应的 `this.data` 的值（同步）。
          * @notice 直接修改 this.data 而不调用 this.setData 是无法改变页面的状态的，还会造成数据不一致
