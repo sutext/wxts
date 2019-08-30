@@ -99,21 +99,107 @@ interface Array<T> {
      */
     readonly contains: (item: T) => boolean;
 }
+
 /** @description extentions wx app and widget decorate */
 declare namespace wx {
+    abstract class App {
+        /**
+         * @description 生命周期回调—监听小程序初始化
+         * 小程序初始化完成时触发，全局只触发一次。
+         */
+        protected onLaunch?(info: ILaunchOptions): void;
+        /**
+         * @description 生命周期回调—监听小程序隐藏
+         * 小程序从前台进入后前台
+         */
+        protected onShow?(info: ILaunchOptions): void;
+        /**
+         * @description 生命周期回调—监听小程序隐藏
+         * 小程序从前台进入后台时
+         */
+        protected onHide?(): void;
+        /**
+         * @description 错误监听函数
+         * 小程序发生脚本错误，或者 api
+         */
+        protected onError?(error?: string): void;
+        /** 页面不存在监听函数
+         *
+         * 小程序要打开的页面不存在时触发，会带上页面信息回调该函数
+         * **注意：**
+         * 1. 如果开发者没有添加 `onPageNotFound` 监听，当跳转页面不存在时，将推入微信客户端原生的页面不存在提示页面。
+         * 2. 如果 `onPageNotFound` 回调中又重定向到另一个不存在的页面，将推入微信客户端原生的页面不存在提示页面，并且不再回调 `onPageNotFound`。
+         *
+         * 最低基础库： 1.9.90
+         */
+        protected onPageNotFound?(opts?: IPageNotFound): void;
+    }
     /**
      * @default {}
      * @param global 在app里面注入的参数为全局参数，将被注入到所有的页面里面
      * @notice 如果某个页面含有和app一样的注入参数，则已页面的参数将覆盖全局参数
      */
     function app(global?: IAnyObject): (target: new () => App) => void;
-    class App implements IApp {
-        [other: string]: any;
-    }
-    class Page<D = any> implements IPage {
+
+    abstract class Page<D = any> {
         readonly data: D & IAnyObject;
         readonly route: string;
         readonly options: IAnyObject;
+        /** 生命周期回调—监听页面加载
+         *
+         * 页面加载时触发。一个页面只会调用一次，可以在 onLoad 的参数中获取打开当前页面路径中的参数。
+         */
+        protected onLoad?(query?: { [queryKey: string]: string }): void;
+        /** 生命周期回调—监听页面显示
+         *
+         * 页面显示/切入前台时触发。
+         */
+        protected onShow?(): void;
+        /** 生命周期回调—监听页面初次渲染完成
+         *
+         * 页面初次渲染完成时触发。一个页面只会调用一次，代表页面已经准备妥当，可以和视图层进行交互。
+         *
+         * 注意：对界面内容进行设置的 API 如`wx.setNavigationBarTitle`，请在`onReady`之后进行。
+         */
+        protected onReady?(): void;
+        /** 生命周期回调—监听页面隐藏
+         *
+         * 页面隐藏/切入后台时触发。 如 `navigateTo` 或底部 `tab` 切换到其他页面，小程序切入后台等。
+         */
+        protected onHide?(): void;
+        /** 生命周期回调—监听页面卸载
+         *
+         * 页面卸载时触发。如`redirectTo`或`navigateBack`到其他页面时。
+         */
+        protected onUnload?(): void;
+        /** 当前是 tab 页时，点击 tab 时触发，最低基础库： `1.9.0` */
+        protected onTabItemTap?(options?: ITabItemOption): void;
+        /** 页面滚动触发事件的处理函数
+         *
+         * 监听用户滑动页面事件。
+         */
+        protected onPageScroll?(options?: IPageScrollOption): void;
+        /** 页面上拉触底事件的处理函数
+         *
+         * 监听用户上拉触底事件。
+         * - 可以在`app.json`的`window`选项中或页面配置中设置触发距离`onReachBottomDistance`。
+         * - 在触发距离内滑动期间，本事件只会被触发一次。
+         */
+        protected onReachBottom?(): void;
+        /** 监听用户下拉动作
+         *
+         * 监听用户下拉刷新事件。
+         * - 需要在`app.json`的`window`选项中或页面配置中开启`enablePullDownRefresh`。
+         * - 可以通过`wx.startPullDownRefresh`触发下拉刷新，调用后触发下拉刷新动画，效果与用户手动下拉刷新一致。
+         * - 当处理完数据刷新后，`wx.stopPullDownRefresh`可以停止当前页面的下拉刷新。
+         */
+        protected onPullDownRefresh?(): void;
+        /**
+         * 设置该页面的分享信息
+         * 用户点击分享按钮的时候会调用
+         * 此事件需要 return 一个 Object 用于自定以分享内容
+         */
+        protected onShareAppMessage?: (options?: IShareAppOption) => IShareAppData;
         /**
          * @description `setData` 函数用于将数据从逻辑层发送到视图层（异步），同时改变对应的 `this.data` 的值（同步）。
          * @notice 直接修改 this.data 而不调用 this.setData 是无法改变页面的状态的，还会造成数据不一致
@@ -138,8 +224,28 @@ declare namespace wx {
      * @notice 在页面中注入的参数将覆盖在app里面注入的全局参数
      */
     function page(inital?: IAnyObject): (target: new () => Page<any>) => void;
-    class Widget<D = any> implements IComponent {
+    abstract class Widget<D = any> {
         readonly data: D & IAnyObject;
+        /**组件配置参数 */
+        protected options?: ComponentOptions;
+        /**类似于mixins和traits的组件间代码复用机制 */
+        protected behaviors?: any[];
+        /**组件间关系定义 */
+        protected relations?: any;
+        /** 描述组件 传入参数 */
+        protected properties?: ComponentProperties;
+        /**组件接受的外部样式类 */
+        protected externalClasses?: string[];
+        /**组件生命周期函数 在组件实例进入页面节点树时执行 注意此时不能调用 setData */
+        protected created?(): void;
+        /**组件生命周期函数 在组件实例进入页面节点树时执行 */
+        protected attached?(): void;
+        /**组件生命周期函数 在组件布局完成后执行 此时可以获取节点信息 */
+        protected ready?(): void;
+        /**组件生命周期函数 在组件实例被移动到节点树另一个位置时执行 */
+        protected moved?(): void;
+        /**组件生命周期函数 在组件实例被从页面节点树移除时执行 */
+        protected detached?(): void;
         /**
          * @description `setData` 函数用于将数据从逻辑层发送到视图层（异步），同时改变对应的 `this.data` 的值（同步）。
          * @notice 直接修改 this.data 而不调用 this.setData 是无法改变页面的状态的，还会造成数据不一致

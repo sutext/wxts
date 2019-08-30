@@ -1,5 +1,6 @@
-var wxts = require('./index');
-var sys = wxts.sys;
+global.wx = {};
+require('./index');
+var sys = wx.sys;
 sys.debug = true;
 var func = sys.oknum;
 var log = sys.log;

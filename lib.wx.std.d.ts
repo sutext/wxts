@@ -2821,7 +2821,7 @@ declare namespace wx {
     function onKeyboardHeightChange(callback: (res: { height: number }) => void): void;
     function getSelectedTextRange(params: BaseParams & { success: (res: { height: number }) => void }): void;
 }
-/** @description weixin mini progarm application declaration */
+/** @description weixin mini progarm app declaration */
 declare namespace wx {
     interface IReferrerInfo {
         /** 来源小程序或公众号或App的 appId
@@ -2834,13 +2834,13 @@ declare namespace wx {
          * - 1038（从另一个小程序返回）：来源小程序 appId
          * - 1043（公众号模板消息）：来源公众号 appId
          */
-        appId: string;
+        readonly appId: string;
         /** 来源小程序传过来的数据，scene=1037或1038时支持 */
-        extraData?: any;
+        readonly extraData?: any;
     }
     interface ILaunchOptions {
-        path: string;
-        query: IAnyObject;
+        readonly path: string;
+        readonly query: IAnyObject;
         /**
          * @description 打开小程序的场景值
          * - 1001: 发现栏小程序主入口，「最近使用」列表（基础库2.2.4版本起包含「我的小程序」列表）
@@ -2913,211 +2913,116 @@ declare namespace wx {
          * - 1103: 发现栏小程序主入口，「我的小程序」列表（基础库2.2.4版本起废弃）
          * - 1104: 微信聊天主界面下拉，「我的小程序」栏（基础库2.2.4版本起废弃）
          */
-        scene: number;
+        readonly scene: number;
         /** shareTicket，详见 [获取更多转发信息]((转发#获取更多转发信息)) */
-        shareTicket: string;
+        readonly shareTicket: string;
         /** 当场景为由从另一个小程序或公众号或App打开时，返回此字段 */
-        referrerInfo?: IReferrerInfo;
+        readonly referrerInfo?: IReferrerInfo;
     }
     interface IPageNotFound {
         /** 不存在页面的路径 */
-        path: string;
+        readonly path: string;
         /** 打开不存在页面的 query */
-        query: IAnyObject;
+        readonly query: IAnyObject;
         /** 是否本次启动的首个页面（例如从分享等入口进来，首个页面是开发者配置的分享页面） */
-        isEntryPage: boolean;
-    }
-    interface IApp extends IAnyObject {
-        /**
-         * @description 生命周期回调—监听小程序初始化
-         * 小程序初始化完成时触发，全局只触发一次。
-         */
-        onLaunch?(info: ILaunchOptions): void;
-        /**
-         * @description 生命周期回调—监听小程序隐藏
-         * 小程序从前台进入后前台
-         */
-        onShow?(info: ILaunchOptions): void;
-        /**
-         * @description 生命周期回调—监听小程序隐藏
-         * 小程序从前台进入后台时
-         */
-        onHide?(): void;
-        /**
-         * @description 错误监听函数
-         * 小程序发生脚本错误，或者 api
-         */
-        onError?(error?: string): void;
-        /** 页面不存在监听函数
-         *
-         * 小程序要打开的页面不存在时触发，会带上页面信息回调该函数
-         * **注意：**
-         * 1. 如果开发者没有添加 `onPageNotFound` 监听，当跳转页面不存在时，将推入微信客户端原生的页面不存在提示页面。
-         * 2. 如果 `onPageNotFound` 回调中又重定向到另一个不存在的页面，将推入微信客户端原生的页面不存在提示页面，并且不再回调 `onPageNotFound`。
-         *
-         * 最低基础库： 1.9.90
-         */
-        onPageNotFound?(opts?: IPageNotFound): void;
+        readonly isEntryPage: boolean;
     }
     interface IPageScrollOption {
         /** 页面在垂直方向已滚动的距离（单位px） */
-        scrollTop: number;
+        readonly scrollTop: number;
     }
     interface IShareAppOption {
         /** 转发事件来源。
-         *
          * 可选值：
          * - `button`：页面内转发按钮；
          * - `menu`：右上角转发菜单。
-         *
          * 最低基础库： `1.2.4`
          */
-        from: 'button' | 'menu' | string;
+        readonly from: 'button' | 'menu' | string;
         /** 如果 `from` 值是 `button`，则 `target` 是触发这次转发事件的 `button`，否则为 `undefined`
          *
          * 最低基础库： `1.2.4` */
-        target: any;
+        readonly target: any;
         /** 页面中包含`<web-view>`组件时，返回当前`<web-view>`的url
          *
          * 最低基础库： `1.6.4`
          */
-        webViewUrl?: string;
+        readonly webViewUrl?: string;
     }
     /**自定以分享内容 */
     interface IShareAppData extends ErrmsgParams {
         /**分享标题 默认 当前小程序名称 */
-        title?: string;
+        readonly title?: string;
         /**分享描述 默认 当前小程序名称 */
-        desc?: string;
+        readonly desc?: string;
         /**分享路径 当前页面 path 必须是以 / 开头的完整路径 */
-        path?: string;
+        readonly path?: string;
         /**自定义图片路径 可以是本地文件路 代码包文件路径或者网络图片路径 支持PNG及JPG 不传入 imageUrl 则使用默认截图 */
-        imageUrl?: string;
-        success?: (res?: { errMsg: string; shareTickets?: Array<string> }) => void;
+        readonly imageUrl?: string;
+        readonly success?: (res?: { errMsg: string; shareTickets?: Array<string> }) => void;
     }
     interface ITabItemOption {
         /** 被点击tabItem的序号，从0开始，最低基础库： `1.9.0` */
-        index: string;
+        readonly index: string;
         /** 被点击tabItem的页面路径，最低基础库： `1.9.0` */
-        pagePath: string;
+        readonly pagePath: string;
         /** 被点击tabItem的按钮文字，最低基础库： `1.9.0` */
-        text: string;
-    }
-    interface IPage extends IAnyObject {
-        /** 生命周期回调—监听页面加载
-         *
-         * 页面加载时触发。一个页面只会调用一次，可以在 onLoad 的参数中获取打开当前页面路径中的参数。
-         */
-        onLoad?(
-            /** 打开当前页面路径中的参数 */
-            query?: { [queryKey: string]: string }
-        ): void;
-        /** 生命周期回调—监听页面显示
-         *
-         * 页面显示/切入前台时触发。
-         */
-        onShow?(): void;
-        /** 生命周期回调—监听页面初次渲染完成
-         * 
-         * 页面初次渲染完成时触发。一个页面只会调用一次，代表页面已经准备妥当，可以和视图层进行交互。
-         * 
-       
-         * 注意：对界面内容进行设置的 API 如`wx.setNavigationBarTitle`，请在`onReady`之后进行。
-        */
-        onReady?(): void;
-        /** 生命周期回调—监听页面隐藏
-         *
-         * 页面隐藏/切入后台时触发。 如 `navigateTo` 或底部 `tab` 切换到其他页面，小程序切入后台等。
-         */
-        onHide?(): void;
-        /** 生命周期回调—监听页面卸载
-         *
-         * 页面卸载时触发。如`redirectTo`或`navigateBack`到其他页面时。
-         */
-        onUnload?(): void;
-        /** 监听用户下拉动作
-         *
-         * 监听用户下拉刷新事件。
-         * - 需要在`app.json`的`window`选项中或页面配置中开启`enablePullDownRefresh`。
-         * - 可以通过`wx.startPullDownRefresh`触发下拉刷新，调用后触发下拉刷新动画，效果与用户手动下拉刷新一致。
-         * - 当处理完数据刷新后，`wx.stopPullDownRefresh`可以停止当前页面的下拉刷新。
-         */
-        onPullDownRefresh?(): void;
-        /** 页面上拉触底事件的处理函数
-         *
-         * 监听用户上拉触底事件。
-         * - 可以在`app.json`的`window`选项中或页面配置中设置触发距离`onReachBottomDistance`。
-         * - 在触发距离内滑动期间，本事件只会被触发一次。
-         */
-        onReachBottom?(): void;
-        /** 当前是 tab 页时，点击 tab 时触发，最低基础库： `1.9.0` */
-        onTabItemTap?(options?: ITabItemOption): void;
-        /** 页面滚动触发事件的处理函数
-         *
-         * 监听用户滑动页面事件。
-         */
-        onPageScroll?(options?: IPageScrollOption): void;
-        /**
-         * 设置该页面的分享信息
-         * 用户点击分享按钮的时候会调用
-         * 此事件需要 return 一个 Object 用于自定以分享内容
-         */
-        onShareAppMessage?: (options?: IShareAppOption) => IShareAppData;
+        readonly text: string;
     }
     interface ComponentOptions {
-        addGlobalClass?: boolean;
-        multipleSlots?: boolean;
+        readonly addGlobalClass?: boolean;
+        readonly multipleSlots?: boolean;
     }
     type ComponentType = StringConstructor | NumberConstructor | BooleanConstructor | ObjectConstructor | ArrayConstructor | null;
     /** Function must be String, Number, Boolean, Object, Array, null */
     interface ComponentProperties {
-        [key: string]: ComponentType | ComponentProperty;
+        readonly [key: string]: ComponentType | ComponentProperty;
     }
     interface ComponentProperty {
-        type: ComponentType;
-        value?: any;
-        observer?: string;
+        readonly type: ComponentType;
+        readonly value?: any;
+        readonly observer?: string;
     }
-    /**指定组件的生命周期函数 时间处理函数及方法等  */
-    interface IComponent {
-        /**组件渲染数据 */
-        data?: any;
+    interface ComponentParams {
+        readonly data: IAnyObject;
         /**组件配置参数 */
-        options?: ComponentOptions;
-        /** 描述组件 传入参数 */
-        properties?: ComponentProperties;
+        readonly options?: ComponentOptions;
         /**类似于mixins和traits的组件间代码复用机制 */
-        behaviors?: any[];
-        /**组件生命周期函数 在组件实例进入页面节点树时执行 注意此时不能调用 setData */
-        created?: Function;
-        /**组件生命周期函数 在组件实例进入页面节点树时执行 */
-        attached?: Function;
-        /**组件生命周期函数 在组件布局完成后执行 此时可以获取节点信息 */
-        ready?: Function;
-        /**组件生命周期函数 在组件实例被移动到节点树另一个位置时执行 */
-        moved?: Function;
-        /**组件生命周期函数 在组件实例被从页面节点树移除时执行 */
-        detached?: Function;
+        readonly behaviors?: any[];
         /**组件间关系定义 */
-        relations?: any;
+        readonly relations?: any;
+        /** 描述组件 传入参数 */
+        readonly properties?: ComponentProperties;
         /**组件接受的外部样式类 */
-        externalClasses?: string[];
+        readonly externalClasses?: string[];
+        /**组件生命周期函数 在组件实例进入页面节点树时执行 注意此时不能调用 setData */
+        readonly created?: Function;
+        /**组件生命周期函数 在组件实例进入页面节点树时执行 */
+        readonly attached?: Function;
+        /**组件生命周期函数 在组件布局完成后执行 此时可以获取节点信息 */
+        readonly ready?: Function;
+        /**组件生命周期函数 在组件实例被移动到节点树另一个位置时执行 */
+        readonly moved?: Function;
+        /**组件生命周期函数 在组件实例被从页面节点树移除时执行 */
+        readonly detached?: Function;
+        /**组件的成员方法 */
+        readonly methods: any;
     }
 }
-/**注册一个小程序 */
-declare const App: (param: wx.IApp) => void;
+/**注册一个小程序  建议使用@wx.app()*/
+declare const App: (param: any) => void;
 
-/**注册一个页面 */
-declare const Page: (param: wx.IPage) => void;
+/**注册一个页面  建议使用@wx.page()*/
+declare const Page: (param: any) => void;
 
-/**注册一个组件 */
-declare const Component: (param: wx.IComponent) => void;
+/**注册一个组件 建议使用@wx.widget()*/
+declare const Component: (param: wx.ComponentParams) => void;
 
 /**注册一个组件模块 */
-declare const Behavior: (param: wx.IComponent) => any;
+declare const Behavior: (param: wx.ComponentParams) => any;
 
 /**全局函数 可以获取到小程序实例 */
-declare const getApp: (opts?: { allowDefault: boolean }) => wx.IApp;
+declare const getApp: (opts?: { allowDefault: boolean }) => any;
 
 /**获取当前页面栈的实例 以数组形式按栈的顺序给出 第一个元素为首页 最后一个元素为当前页面 */
 declare const getCurrentPages: () => any[];

@@ -39,7 +39,7 @@ For src/app.ts :
 import 'wxts'
 import {socket} from './socket'
 const env = wx.getSystemInfoSync()
-@app({ env })
+@wx.app({ env })
 export default class App extends wx.App implements wx.IApp {
     onLaunch() {
         socket.on('message',this,this.onMessage)

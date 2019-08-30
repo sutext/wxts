@@ -1,6 +1,6 @@
 {
     "name": "wxts",
-    "version": "2.0.2",
+    "version": "2.0.3",
     "description": "wexin typescript dev suport!",
     "main": "index.js",
     "files": [
@@ -10,7 +10,8 @@
         "lib.wx.es6.d.ts"
     ],
     "scripts": {
-        "test": "node test.js"
+        "test": "node test.js",
+        "prepublishOnly": "uglifyjs src/index.js -o index.js"
     },
     "repository": {
         "type": "git",
@@ -28,5 +29,8 @@
     "bugs": {
         "url": "https://github.com/sutext/wxts/issues"
     },
-    "homepage": "https://github.com/sutext/wxts#readme"
+    "homepage": "https://github.com/sutext/wxts#readme",
+    "devDependencies": {
+        "uglify-js": "^3.6.0"
+    }
 }

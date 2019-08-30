@@ -1,6 +1,12 @@
 'use strict';
 Object.defineProperty(exports, '__esModule', { value: true });
-var ns = wx || exports;
+if (!wx) {
+    throw new Error('wxts can not work without weixin mimi program context!!!');
+}
+var ns = wx;
+var sys = ns.sys || (ns.sys = {});
+var pop = ns.pop || (ns.pop = {});
+var orm = ns.orm || (ns.orm = {});
 var __extends = (function() {
     var extendStatics = function(d, b) {
         extendStatics =
@@ -22,9 +28,8 @@ var __extends = (function() {
         d.prototype = b === null ? Object.create(b) : ((__.prototype = b.prototype), new __());
     };
 })();
-
+//--ext
 (function() {
-    'use strict';
     Number.prototype.fixlen = function(len) {
         if (typeof len !== 'number' || len < 1) {
             len = 2;
@@ -219,8 +224,8 @@ var __extends = (function() {
         configurable: true
     });
 })();
-
-(function(ns) {
+//--app
+(function() {
     function trim(origin) {
         var result = {};
         for (var key in origin) {
@@ -240,7 +245,10 @@ var __extends = (function() {
             App(trim(new target()));
         };
     };
-    ns.App = function() {};
+    ns.App = (function() {
+        function App() {}
+        return App;
+    })();
     ns.page = function(inital) {
         return function(target) {
             var param = new target();
@@ -250,8 +258,14 @@ var __extends = (function() {
             Page(trim(param));
         };
     };
-    ns.Page = function() {};
-    ns.Widget = function() {};
+    ns.Page = (function() {
+        function Page() {}
+        return Page;
+    })();
+    ns.Widget = (function() {
+        function Widget() {}
+        return Widget;
+    })();
     var keys = ['properties', 'data', 'behaviors', 'created', 'attached', 'ready', 'moved', 'detached', 'relations', 'externalClasses'];
     ns.widget = function(inital) {
         return function(target) {
@@ -270,12 +284,9 @@ var __extends = (function() {
             Component(result);
         };
     };
-})(ns);
-
-var sys;
-var pop;
-
-(function(ns) {
+})();
+//--net
+(function() {
     var Network = (function() {
         function Network() {
             var _this = this;
@@ -846,9 +857,9 @@ var pop;
         Socket.Client = Client;
     })(Socket);
     ns.Socket = Socket;
-})(ns);
-
-(function(sys) {
+})();
+//--sys
+(function() {
     sys.debug = true;
     sys.log = function() {
         if (sys.debug) {
@@ -910,9 +921,9 @@ var pop;
         enumerable: true,
         configurable: true
     });
-})((sys = ns.sys || (ns.sys = {})));
-
-(function(pop) {
+})();
+//--pop
+(function() {
     pop.wait = function(title) {
         ns.showLoading({ title: title || '加载中', mask: true });
     };
@@ -945,9 +956,9 @@ var pop;
             return sys.call(dismiss);
         }, 1000);
     };
-})((pop = ns.pop || (ns.pop = {})));
-
-(function(orm) {
+})();
+//--orm
+(function() {
     var FIELD_KEY = '__orm_field';
     var CLASS_KEY = '__orm_class';
     var INDEX_KEY = '__orm_index';
@@ -1079,4 +1090,4 @@ var pop;
             setItem(clskey, keys);
         }
     };
-})(ns.orm || (ns.orm = {}));
+})();
