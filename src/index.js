@@ -71,10 +71,27 @@ var __extends = (function() {
             }
             result = head + result;
         }
-        if (strary.length > 1) {
-            result = result + '.' + (strary[1] || '0');
-        }
         return result;
+    };
+    Number.prototype.kmgtify = function(max) {
+        if (max === void 0) {
+            max = 3;
+        }
+        if (max !== 3 && max !== 4 && max !== 5 && max !== 6) {
+            throw new Error('maxlen must be intger between 3 and 6');
+        }
+        if (this < Math.pow(10, max)) {
+            return this.comma();
+        } else if (this < Math.pow(10, max + 3)) {
+            return (this / 1000).comma() + 'K';
+        } else if (this < Math.pow(10, max + 6)) {
+            return (this / 1000000).comma() + 'M';
+        } else if (this < Math.pow(10, max + 9)) {
+            return (this / 1000000000).comma() + 'G';
+        } else if (this < Math.pow(10, max + 12)) {
+            return (this / 1000000000000).comma() + 'T';
+        }
+        return this.comma();
     };
     Object.defineProperty(Number.prototype, 'symidx', {
         get: function() {
@@ -192,7 +209,9 @@ var __extends = (function() {
             's+': this.getSeconds() //秒
         };
         if (/(y+)/.test(fmt)) fmt = fmt.replace(RegExp.$1, (this.getFullYear() + '').substr(4 - RegExp.$1.length));
-        for (var k in o) if (new RegExp('(' + k + ')').test(fmt)) fmt = fmt.replace(RegExp.$1, RegExp.$1.length == 1 ? o[k] : ('00' + o[k]).substr(('' + o[k]).length));
+        for (var k in o)
+            if (new RegExp('(' + k + ')').test(fmt))
+                fmt = fmt.replace(RegExp.$1, RegExp.$1.length == 1 ? o[k] : ('00' + o[k]).substr(('' + o[k]).length));
         return fmt;
     };
     Object.defineProperty(Date.prototype, 'hhmmss', {
@@ -287,6 +306,79 @@ var __extends = (function() {
 })();
 //--net
 (function() {
+    var Emitter = (function() {
+        function Emitter() {
+            var _this = this;
+            this.observers = {};
+            this.on = function(evt, target, callback, once) {
+                var list = _this.observers[evt] || (_this.observers[evt] = []);
+                var idx = list.findIndex(function(ele) {
+                    return ele.target === target && ele.once === !!once;
+                });
+                if (idx === -1) {
+                    list.push({ callback: callback, target: target, once: !!once });
+                }
+            };
+            this.off = function(evt, target) {
+                if (typeof evt === 'string') {
+                    if (target) {
+                        this.removeByTarget(_this.observers[evt], target);
+                    } else {
+                        _this.observers[evt] = [];
+                    }
+                } else if (typeof evt === 'object') {
+                    for (var key in _this.observers) {
+                        this.removeByTarget(_this.observers[key], evt);
+                    }
+                }
+            };
+            this.once = function(event, target, callback) {
+                _this.on(event, target, callback, true);
+            };
+            this.emit = function(event) {
+                if (typeof event !== 'string') return;
+                var list = _this.observers[event];
+                if (!Array.isArray(list)) return;
+                var args = [];
+                for (var i = 1; i < arguments.length; i++) {
+                    args.push(arguments[i]);
+                }
+                for (var i = 0; i < list.length; i++) {
+                    var ele = list[i];
+                    ele.callback.apply(ele.target, args);
+                }
+                for (var i = list.length - 1; i >= 0; i--) {
+                    if (list[i].once) {
+                        list.splice(i, 1);
+                    }
+                }
+            };
+            this.clear = function() {
+                _this.observers = {};
+            };
+        }
+        Emitter.prototype.removeByTarget = function(list, target) {
+            if (Array.isArray(list)) {
+                for (var i = list.length - 1; i >= 0; i--) {
+                    if (list[i].target === target) {
+                        list.splice(i, 1);
+                    }
+                }
+            }
+        };
+        return Emitter;
+    })();
+    ns.Emitter = Emitter;
+    var NoticeCenter = (function(_super) {
+        __extends(NoticeCenter, _super);
+        function NoticeCenter() {
+            return (_super !== null && _super.apply(this, arguments)) || this;
+        }
+        return NoticeCenter;
+    })(Emitter);
+    ns.NoticeCenter = NoticeCenter;
+    ns.notice = new NoticeCenter();
+
     var Network = (function() {
         function Network() {
             var _this = this;
@@ -686,16 +778,6 @@ var __extends = (function() {
         return Socket;
     })();
     (function(Socket) {
-        var Observers = (function() {
-            function Observers() {
-                this.open = [];
-                this.error = [];
-                this.close = [];
-                this.message = [];
-            }
-            return Observers;
-        })();
-        Socket.Observers = Observers;
         var Retry = (function() {
             function Retry(attempt, failed) {
                 var _this = this;
@@ -763,27 +845,11 @@ var __extends = (function() {
             return Ping;
         })();
         Socket.Ping = Ping;
-        var Client = /** @class */ (function() {
+        var Client = /** @class */ (function(_super) {
+            __extends(Client, _super);
             function Client() {
-                var _this = this;
-                this.observers = new Observers();
-                this.on = function(evt, target, callback) {
-                    var idx = _this.observers[evt].findIndex(function(ele) {
-                        return ele.target === target;
-                    });
-                    if (idx === -1) {
-                        _this.observers[evt].push({ callback: callback, target: target });
-                    }
-                };
-                this.off = function(evt, target) {
-                    var idx = _this.observers[evt].findIndex(function(ele) {
-                        return ele.target === target;
-                    });
-                    if (idx !== -1) {
-                        _this.observers[evt].splice(idx, 1);
-                    }
-                };
-                this.stop = function() {
+                var _this = (_super !== null && _super.apply(this, arguments)) || this;
+                _this.stop = function() {
                     if (_this.socket.status === 'closed' || _this.socket.status === 'closing') {
                         return;
                     }
@@ -791,7 +857,7 @@ var __extends = (function() {
                     _this.socket.close(1000, 'user');
                     _this.ping.stop();
                 };
-                this.start = function() {
+                _this.start = function() {
                     if (!_this.isLogin || _this.socket.isRetrying || _this.socket.status === 'opened' || _this.socket.status === 'opening') {
                         return;
                     }
@@ -800,19 +866,19 @@ var __extends = (function() {
                     _this.socket.open();
                     _this.ping.start();
                 };
-                this.socket = new Socket(function() {
+                _this.socket = new Socket(function() {
                     return _this.buildurl();
                 });
-                this.ping = new Ping(this.socket);
-                this.socket.onopen = function(evt, isRetry) {
+                _this.ping = new Ping(_this.socket);
+                _this.socket.onopen = function(evt, isRetry) {
                     sys.log('Socket Client Opend:evt=', evt);
                     _this.onOpened(evt, isRetry);
                 };
-                this.socket.onerror = function(evt) {
+                _this.socket.onerror = function(evt) {
                     sys.warn('Socket Client Error:evt=', evt);
                     _this.onError(evt);
                 };
-                this.socket.onmessage = function(evt) {
+                _this.socket.onmessage = function(evt) {
                     sys.log('Socket Client received message:evt=', evt);
                     if (typeof evt.data !== 'string') return;
                     var msg = JSON.parse(evt.data);
@@ -822,7 +888,7 @@ var __extends = (function() {
                         _this.onMessage(msg);
                     }
                 };
-                this.socket.onclose = function(evt, reason) {
+                _this.socket.onclose = function(evt, reason) {
                     sys.log('Socket Client closed:evt=', evt);
                     _this.ping.stop();
                     _this.onClosed(evt, reason);
@@ -853,7 +919,7 @@ var __extends = (function() {
                 configurable: true
             });
             return Client;
-        })();
+        })(Emitter);
         Socket.Client = Client;
     })(Socket);
     ns.Socket = Socket;
@@ -886,7 +952,7 @@ var __extends = (function() {
             case 'string':
                 return value.length !== 0;
             case 'number':
-                return true;
+                return !isNaN(value);
             default:
                 return false;
         }
@@ -895,7 +961,7 @@ var __extends = (function() {
         var type = typeof value;
         switch (type) {
             case 'string':
-                return /^\d+$/.test(value);
+                return /^[-+]?\d+$/.test(value);
             case 'number':
                 return Number.isInteger(value);
             default:
@@ -906,9 +972,9 @@ var __extends = (function() {
         var type = typeof value;
         switch (type) {
             case 'string':
-                return /^\d+(\.\d+)?$/.test(value);
+                return /^[-+]?\d+(\.\d+)?$/.test(value);
             case 'number':
-                return true;
+                return !isNaN(value);
             default:
                 return false;
         }
@@ -968,18 +1034,22 @@ var __extends = (function() {
         var obj = new cls();
         Object.assign(obj, json);
         var fields = cls[FIELD_KEY];
-        if (fields) {
-            for (var key in fields) {
-                var subjson = obj[key];
-                var subcls = fields[key];
-                if (subjson && subcls) {
-                    if (Array.isArray(subjson)) {
-                        obj[key] = subjson.map(function(json) {
-                            return awake(subcls, json);
-                        });
-                    } else {
-                        obj[key] = awake(subcls, subjson);
+        if (!fields) return obj;
+        for (var key in fields) {
+            var subjson = obj[key];
+            var subconf = fields[key];
+            if (subjson && subconf) {
+                if (Array.isArray(subjson)) {
+                    obj[key] = subjson.map(function(sbjson) {
+                        return awake(subconf.cls, sbjson);
+                    });
+                } else if (subconf.map) {
+                    var result = (obj[key] = {});
+                    for (var sbkey in subjson) {
+                        result[sbkey] = awake(subconf.cls, subjson[sbkey]);
                     }
+                } else {
+                    obj[key] = awake(subconf.cls, subjson);
                 }
             }
         }
@@ -988,7 +1058,7 @@ var __extends = (function() {
     function getClskey(cls) {
         var clskey = cls && cls[CLASS_KEY];
         if (!clskey) {
-            throw new Error('The Class:' + cls.name + " did't  mark with decorate @store(clsname,primary)");
+            throw new Error('The Class:' + cls.name + " did't  mark with decorate @store(clskey,idxkey)");
         }
         return clskey;
     }
@@ -1017,7 +1087,7 @@ var __extends = (function() {
             throw new Error('The clskey:' + clskey + ' invalid!');
         }
         if (!sys.okstr(idxkey)) {
-            throw new Error('The privkey:' + idxkey + ' invalid!');
+            throw new Error('The idxkey:' + idxkey + ' invalid!');
         }
         if (stored[clskey]) {
             throw new Error('The clskey:' + clskey + " already exist!!You can't mark different class with same name!!");
@@ -1028,10 +1098,10 @@ var __extends = (function() {
             target[INDEX_KEY] = idxkey;
         };
     };
-    orm.field = function(cls) {
+    orm.field = function(cls, map) {
         return function(target, field) {
             var fields = target.constructor[FIELD_KEY] || (target.constructor[FIELD_KEY] = {});
-            fields[field] = cls;
+            fields[field] = { map: !!map, cls: cls };
         };
     };
     orm.save = function(model) {
@@ -1077,8 +1147,8 @@ var __extends = (function() {
             for (var key in keys) {
                 removeItem(key);
             }
-            removeItem(clskey);
         }
+        removeItem(clskey);
     };
     orm.remove = function(cls, id) {
         var clskey = getClskey(cls);

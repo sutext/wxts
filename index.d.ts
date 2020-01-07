@@ -55,7 +55,24 @@ interface Number {
      */
     readonly fixlen: (len?: number) => string;
     /**
-     * @description get index symbol of int number @example 23 -> 23rd @returns 'rd'
+     * @description Trun the big number to kilo million billion trillion
+     * @param maxbit The max bit width affter format. @default 3
+     * @example
+     * console.log((1000000).kmgtify(3));//1M
+     * console.log((1000000).kmgtify(4));//1000K
+     * console.log((1000000).kmgtify(5));//1000K
+     * console.log((1000000).kmgtify(6));//1000K
+     * console.log((10000000).kmgtify(3));//10M
+     * console.log((10000000).kmgtify(4));//10M
+     * console.log((10000000).kmgtify(5));//10000K
+     * console.log((1000000000).kmgtify(3));//1G
+     * console.log((999999999999999).kmgtify(3));//999T
+     */
+    readonly kmgtify: (maxbit?: 3 | 4 | 5 | 6) => string;
+    /**
+     * @description get index symbol of int number
+     * @example
+     * console.log((23).symidx);//rd
      */
     readonly symidx: 'st' | 'nd' | 'rd' | 'th';
 }
@@ -296,44 +313,85 @@ declare namespace wx {
     interface IMetaClass<T> {
         new (json?: any): T;
     }
-    interface IObserver {
-        readonly target: any;
-        readonly callback: Function;
+    abstract class Emitter<E extends string = string> {
+        /**
+         * @description register event handler to the emitter on target.
+         * @notice Only one handler will exist in same target and same event. The later one will be ignore
+         * @param event the event
+         * @param target the callback's caller
+         * @param callback the event handler
+         */
+        public readonly on: (event: E, target: object, callback: Function) => void;
+        /**
+         * @description remove event handler of the emitter
+         * @example
+         * emiter.off('YOUR_EVENT') // remove all the handler of 'YOUR_EVENT'
+         * emiter.off(this) // remove all the handler on the 'this' target
+         * emiter.off('YOUR_EVENT',this) // only remove the handler of 'YOUR_EVENT' on this target
+         * //The following usage is not recommended
+         * emiter.off(this,other) // the same as emiter.off(this) other will be ignore.
+         */
+        public readonly off: (eventOrTarget: E | object, target?: object) => void;
+        /**
+         * @description register once event handler to the emitter on target
+         * @notice Only one handler will exist in same target and same event. The later one will be ignore
+         * @param event the event
+         * @param target the callback's caller
+         * @param callback the event handler
+         */
+        public readonly once: (event: E, target: object, callback: Function) => void;
+        /**
+         * @description remove all handler
+         */
+        protected readonly clear: () => void;
+        /**
+         * @description dispatch event to all the rigsted handler
+         * @param event the event
+         * @param args the arguments of callback function
+         */
+        protected readonly emit: (event: E, ...args: any[]) => void;
     }
+    class NoticeCenter extends Emitter<string> {
+        /** @description remove all handler */
+        public readonly clear: () => void;
+        /**
+         * @description dispatch event to all the rigsted handler
+         * @param event the event
+         * @param args the arguments of callback function
+         */
+        public readonly emit: (event: string, ...args: any[]) => void;
+    }
+    /**  @description A global shared notice center. */
+    const notice: NoticeCenter;
     /**
-     * @description Network是一个抽象类，用户需继承此类以适配自己的业务逻辑
-     * @description Network是对wx.request做的上层封装，
-     * @description Network提供的是Promise风格的网络请求调用，可使用链式调用和await等特性
-     * @description Netowrk提供了一套网络层到模型层转换的范式，用户调用task方法即可获得结构化的模型
-     * @description Network生成的task被设计成句柄模式，可以abort或者监听请求进度等
-     * @description datatask被创建后会立即自动执行发送请求，若请求达到最大并发数的时候将被挂起，等待其他请求结束后会自动执行。
+     * @description
+     * Network是一个抽象类，用户需继承此类以适配自己的业务逻辑
+     * Network是对wx.request做的上层封装，
+     * Network提供的是Promise风格的网络请求调用，可使用链式调用和await等特性
+     * Netowrk提供了一套网络层到模型层转换的范式，用户调用task方法即可获得结构化的模型
+     * Network生成的task被设计成句柄模式，可以abort或者监听请求进度等
+     * datatask被创建后会立即自动执行发送请求，若请求达到最大并发数的时候将被挂起，等待其他请求结束后会自动执行。
      */
     abstract class Network {
         /**
-         * @override point you shoud overwrite this property and provide you custom headers
-         * @example
+         * @notice You shoud overwrite this property and provide you custom headers
          * @default {}
-         * **示例代码*
-         * ``
+         * @example
          * protected get headers(): any {
          *     return {
          *         token:'yourtoken',
          *         account:'youraccount'
          *     }
          * }
-         * ``
          */
         protected readonly headers: any;
         /**
-         * @override point you shoud overwrite this property and provide you custom headers
+         * @notice You shoud overwrite this property and provide you custom headers
          * @default 'POST'
          * @example
-         * **示例代码*
-         * ``
          * protected get method(): any {
          *     return 'POST'
          * }
-         * ``
          */
         protected readonly method: Network.Method;
         /**
@@ -423,7 +481,10 @@ declare namespace wx {
         class DataTask<T> implements Promise<T> {
             readonly [Symbol.toStringTag]: 'Promise';
             constructor(promiss: Promise<T>, handler: RequestTask);
-            readonly then: <TResult1 = T, TResult2 = never>(onfulfilled?: (value: T) => TResult1 | PromiseLike<TResult1>, onrejected?: (reason: any) => TResult2 | PromiseLike<TResult2>) => Promise<TResult1 | TResult2>;
+            readonly then: <TResult1 = T, TResult2 = never>(
+                onfulfilled?: (value: T) => TResult1 | PromiseLike<TResult1>,
+                onrejected?: (reason: any) => TResult2 | PromiseLike<TResult2>
+            ) => Promise<TResult1 | TResult2>;
             readonly catch: <TResult = never>(onrejected?: (reason: any) => TResult | PromiseLike<TResult>) => Promise<T | TResult>;
             readonly abort: () => void;
             readonly onHeaders: (func: (headers: any) => void) => void;
@@ -460,13 +521,7 @@ declare namespace wx {
     namespace Socket {
         type Reason = 'user' | 'ping' | 'retry' | 'server';
         type Status = 'closed' | 'closing' | 'opened' | 'opening';
-        type Events = keyof Observers;
-        interface Observers {
-            readonly open: IObserver[];
-            readonly error: IObserver[];
-            readonly close: IObserver[];
-            readonly message: IObserver[];
-        }
+        type Events = 'open' | 'error' | 'close' | 'message';
         interface Retry {
             /**
              * @description base attempt delay time @default 100 milliscond
@@ -498,7 +553,7 @@ declare namespace wx {
          * @implements client PING heartbeat mechanis
          * @implements client reconnect  mechanis
          */
-        abstract class Client {
+        abstract class Client<E extends string = Events> extends Emitter<E> {
             /**
              * @description the client ping mechanis
              * @ping use socket.send("{\"type\":\"PING\"}")
@@ -508,31 +563,19 @@ declare namespace wx {
             protected readonly ping: Ping;
             /** the realy websocket handler */
             protected readonly socket: Socket;
-            /**
-             * @notice all the observers will not be trigger
-             * @notice you must trigger it yourself at overwrite point
-             */
-            protected readonly observers: Observers;
             /** Tell me your login status if not no retry */
             protected abstract readonly isLogin: boolean;
             /** @overwrite this method to provide url for web socket */
             protected abstract buildurl(): string;
-            /** call when get some message @override point  @node the msg has been parsed using JSON.parse.*/
+            /** call when get some message @override point  @notice the msg has been parsed using JSON.parse.*/
             protected abstract onMessage(msg: any): void;
             /** call when some error occur @override point */
             protected onError(res: SocketError): void;
-            /** call when socket closed . @override point */
+            /** call when socket opened . @override point */
             protected onOpened(res: any, isRetry: boolean): void;
-            /** @description call when socket closed @param reason the close reason */
+            /** call when socket closed @param reason the close reason */
             protected onClosed(res: SocketClose, reason: Reason): void;
             public readonly isConnected: boolean; /** the connection status */
-            /**
-             * @description add event listener
-             * @warn By default all the envents will not be triggered unless triggerde by userself.
-             */
-            public readonly on: (evt: 'error' | 'message' | 'close' | 'open', target: any, callback: Function) => void;
-            /** @description remove listener */
-            public readonly off: (evt: 'error' | 'message' | 'close' | 'open', target: any) => void;
             /** @description disconnect and stop ping pong retry */
             public readonly stop: () => void;
             /** @description connect the server and start ping pong retry */
@@ -625,16 +668,30 @@ declare namespace wx {
     namespace orm {
         /**
          * @description  A class decorate use to store class.
-         * @param clsname the class name of your storage class
-         * @param primary the primary key name of your storage class
+         * @param clskey the global unique class name of your storage class
+         * @param idxkey the class unique field name of your storage class
          * @throws class already exist error.
          */
         const store: (clskey: string, idxkey: string) => <T>(target: IMetaClass<T>) => void;
         /**
          * @description  A property decorate to mark a field  also a store class.
          * @param cls the class of field.
+         * @param map use map store or not
+         * @example
+         * ```
+         * @store('User','id')
+         * class User{
+         *     id:string
+         *     @field(User)
+         *     parent:User
+         *     @field(User,true)
+         *     chilren:Record<string,User> = {}
+         *     @field(User)
+         *     childArray:User[] = []
+         * }
+         * ```
          */
-        const field: <T>(cls: IMetaClass<T>) => (target: Object, field: string) => void;
+        const field: <T>(cls: IMetaClass<T>, map?: boolean) => (target: Object, field: string) => void;
         /**
          * @description save an storage able class.
          * @param model the model class must be mark with @store(...)

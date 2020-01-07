@@ -1,6 +1,6 @@
 {
     "name": "wxts",
-    "version": "2.0.4",
+    "version": "2.0.5",
     "description": "wexin typescript dev suport!",
     "main": "index.js",
     "files": [
@@ -10,7 +10,7 @@
         "lib.wx.es6.d.ts"
     ],
     "scripts": {
-        "test": "node test.js",
+        "test": "node src/test.js",
         "prepublishOnly": "uglifyjs src/index.js -o index.js"
     },
     "repository": {
